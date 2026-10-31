@@ -28,13 +28,15 @@ export function OpenLoopsPanel() {
           {open.map((loop) => {
             const age = loopAge(loop, deck.clock);
             return (
-              <li key={loop.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl bg-zinc-950/60 px-3 py-2">
-                <span className="min-w-0 flex-1 text-sm text-zinc-200">{loop.label}</span>
-                <Badge tone={age > LOOP_AGED_MINUTES ? "amber" : "zinc"}>waiting {formatWait(age)}</Badge>
-                <Badge tone={loop.batched ? "sky" : "red"}>{loop.batched ? "held for review" : "surfaced now"}</Badge>
-                <Button size="sm" onClick={() => store.dispatch({ type: "close-loop", at: store.now(), loopId: loop.id })}>
-                  Answered
-                </Button>
+              <li key={loop.id} className="rounded-xl bg-zinc-950/60 px-3 py-2">
+                <p className="text-sm text-zinc-200">{loop.label}</p>
+                <div className="mt-2 flex flex-wrap items-center gap-2">
+                  <Badge tone={age > LOOP_AGED_MINUTES ? "amber" : "zinc"}>waiting {formatWait(age)}</Badge>
+                  <Badge tone={loop.batched ? "sky" : "red"}>{loop.batched ? "held for review" : "surfaced now"}</Badge>
+                  <Button size="sm" className="ml-auto" onClick={() => store.dispatch({ type: "close-loop", at: store.now(), loopId: loop.id })}>
+                    Answered
+                  </Button>
+                </div>
               </li>
             );
           })}

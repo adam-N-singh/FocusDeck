@@ -51,11 +51,12 @@ export function DeckProvider({ children }: { children: ReactNode }) {
     window.addEventListener("pagehide", flush);
     document.addEventListener("visibilitychange", flush);
 
-    // Keep the bridge's designated-app filter in step with your model.
+    // Keep the bridge's designated-app filter in step with your model — including after
+    // the bridge is switched back on, since changes made while it was off weren't sent.
     let designated = "";
     const unsubscribe = store.subscribe(() => {
-      const { leader, hydrated, model } = store.getSnapshot();
-      const key = model.designatedApps.join(",");
+      const { leader, hydrated, model, bridge } = store.getSnapshot();
+      const key = `${bridge.enabled}|${model.designatedApps.join(",")}`;
       if (leader && hydrated && key !== designated) {
         designated = key;
         void pushBridgeConfig();
