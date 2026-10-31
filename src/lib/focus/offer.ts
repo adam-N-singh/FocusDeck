@@ -8,17 +8,28 @@
  * own inspectable model (Hymah North-Star §4: not a feed, no discovery).
  */
 
+import type { AppId } from "./types";
+
+export type QueueItemKind = "blocked-agent" | "task" | "intention" | "content-chunk" | "interest";
+
 export interface QueueItem {
   id: string;
-  kind: "blocked-agent" | "task" | "intention" | "content-chunk" | "interest";
+  kind: QueueItemKind;
   title: string;
   /** Smallest next action, e.g. "Open PR #42" — never the whole task (§3.3). */
   microAction: string;
   priority: number; // lower = sooner
   estimatedMinutes: number;
+  /**
+   * Where the micro-action happens. Lets mode-scoped offers prefer items that
+   * keep you in your mode — accepting must not itself become a context switch.
+   */
+  app?: AppId;
+  /** What Accept pre-loads (Spec §3.3: the accepted thing arrives pre-loaded). */
+  url?: string;
 }
 
-const TIER_ORDER: Record<QueueItem["kind"], number> = {
+export const TIER_ORDER: Record<QueueItemKind, number> = {
   "blocked-agent": 0, // new in the twist: open loops first
   task: 1,
   intention: 2,

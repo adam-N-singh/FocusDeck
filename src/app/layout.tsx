@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { AppShell } from "@/components/shell/AppShell";
+import { DeckProvider } from "@/components/shell/DeckProvider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -14,7 +16,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "FocusDeck — mode-aware focus for agent-heavy work",
-  description: "Counts app switches, batches agent interruptions into open loops, and stress-tests parallel-agent workloads.",
+  description:
+    "Hymah's attention engine in the agent-heavy desktop world: modes, open loops batched to a review moment, offers in your own words, and an honest weekly mirror.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -23,7 +26,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <DeckProvider>
+          <AppShell>{children}</AppShell>
+        </DeckProvider>
+      </body>
     </html>
   );
 }
