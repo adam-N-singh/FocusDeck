@@ -1,5 +1,5 @@
-import { computeMetrics, estimatedLostMinutes } from "./metrics";
-import { simulateDay, type SimulationConfig } from "./simulator";
+import { simulatePolicyDay } from "./policySim";
+import type { SimulationConfig } from "./simulator";
 
 export interface StressRow {
   parallelAgents: number;
@@ -11,21 +11,48 @@ export interface StressRow {
   openLoops: number;
   estimatedLostMinutes: number;
   warningCount: number;
+  /** Mean minutes an agent blocked on you waited — open-loop ageing (README next step 2). */
+  meanWaitMinutes: number;
+  /** Share of agent-time spent working rather than waiting on you, 0..1. */
+  agentUtilization: number;
+  focusMinutes: number;
 }
 
-/** Run one simulated day and reduce it to a comparable row. Pure and fast. */
+/** Defection-moment acceptance assumed by the legacy sweep. The Lab lets you vary it. */
+export const SWEEP_ACCEPT_RATE = 0.3;
+
+/**
+ * Run one simulated day and reduce it to a comparable row. Pure and fast.
+ *
+ * This now runs the policy-aware simulator (policySim.ts): "never review"
+ * (9999) is the status quo of reacting to every ping, and any other cadence
+ * is FocusDeck's default rules with a scheduled review moment. The first
+ * version replayed policy-independent events, so its open loops were always
+ * 0 and reviewing more often looked worse — see BUILD-NOTES.md.
+ */
 export function runStressCell(config: SimulationConfig): StressRow {
-  const metrics = computeMetrics(simulateDay(config));
+  const never = config.reviewEveryMinutes >= 9999;
+  const day = simulatePolicyDay({
+    seed: config.seed,
+    durationMinutes: config.durationMinutes,
+    parallelAgents: config.parallelAgents,
+    policy: never ? "ad-hoc" : "focusdeck",
+    reviewEveryMinutes: config.reviewEveryMinutes,
+    acceptRate: SWEEP_ACCEPT_RATE,
+  });
   return {
     parallelAgents: config.parallelAgents,
     reviewEveryMinutes: config.reviewEveryMinutes,
-    totalSwitches: metrics.totalSwitches,
-    contextSwitches: metrics.contextSwitches,
-    interruptions: metrics.interruptions,
-    interruptionsAvoided: metrics.interruptionsAvoided,
-    openLoops: metrics.openLoops,
-    estimatedLostMinutes: estimatedLostMinutes(metrics),
-    warningCount: metrics.warningCount,
+    totalSwitches: day.totalSwitches,
+    contextSwitches: day.contextSwitches,
+    interruptions: day.interruptions,
+    interruptionsAvoided: day.heldBack,
+    openLoops: day.loopsOpened,
+    estimatedLostMinutes: Math.round(day.lostMinutes),
+    warningCount: day.warningCount,
+    meanWaitMinutes: day.meanWaitMinutes,
+    agentUtilization: day.agentUtilization,
+    focusMinutes: Math.round(day.focusMinutes),
   };
 }
 

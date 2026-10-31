@@ -26,10 +26,15 @@ const BUILD_APPS: AppId[] = ["editor", "terminal", "browser-docs", "editor", "te
 const DISTRACTION_APPS: AppId[] = ["browser-x", "slack"];
 
 /**
- * Simulate one agent-heavy day. While "Building", each parallel agent finishes
- * or blocks at random, pulling you to its app (a switch, often a context
- * switch), and waiting agents tempt a check of Slack/X — exactly the loop in
- * the post: "open X while the next [agent run finishes]".
+ * Simulate one agent-heavy day as an event trace. While "Building", each
+ * parallel agent finishes or blocks at random, pulling you to its app (a
+ * switch, often a context switch), and waiting agents tempt a check of
+ * Slack/X — exactly the loop in the post: "open X while the next [agent run
+ * finishes]".
+ *
+ * This trace is policy-independent, which makes it right for replaying into
+ * the live deck (the demo sensor) and wrong for judging policies — the stress
+ * sweep uses policySim.ts, where behaviour responds to the policy.
  */
 export function simulateDay(config: SimulationConfig): FocusEvent[] {
   const rng = createRng(config.seed);
