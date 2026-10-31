@@ -95,8 +95,11 @@ export function simulatePolicyDay(config: PolicySimConfig): PolicyDay {
   };
   const startReview = (t: number) => {
     const waiting = waitingAgents();
-    contextSwitch(t, "agents"); // one deliberate mode transition
-    day.totalSwitches += waiting.length; // agent to agent inside the review is in-mode
+    // A deliberate mode transition, not a leak: it costs the refocus on return, but like the
+    // live deck it isn't counted as a context switch — and agent to agent inside is in-mode.
+    day.totalSwitches += 1 + waiting.length;
+    charge(c.contextSwitch, "agents");
+    stretch = 0;
     startAttending(t, waiting);
     day.reviews += 1;
     lastReview = t;
