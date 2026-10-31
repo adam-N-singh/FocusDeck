@@ -80,11 +80,12 @@ describe("bridge trust", () => {
     expect(checkTrust(facts({ contentType: "text/plain" }), {}, "write")).toMatchObject({ ok: false, status: 415 });
   });
 
-  it("requires the token from sensors when one is configured, never from the app's own page", () => {
+  it("requires the token from every client once one is configured — a same-origin header is spoofable", () => {
     const config = { token: "s3cret-token" };
     expect(checkTrust(facts({}), config, "write")).toMatchObject({ ok: false, status: 401 });
+    expect(checkTrust(facts({ secFetchSite: "same-origin", origin: "http://localhost:3000" }), config, "write-config")).toMatchObject({ ok: false, status: 401 });
     expect(checkTrust(facts({ authorization: "Bearer s3cret-token" }), config, "write")).toEqual({ ok: true, via: "sensor" });
-    expect(checkTrust(facts({ secFetchSite: "same-origin", origin: "http://localhost:3000" }), config, "write")).toEqual({ ok: true, via: "browser" });
+    expect(checkTrust(facts({ secFetchSite: "same-origin", authorization: "Bearer s3cret-token" }), config, "write-config")).toEqual({ ok: true, via: "browser" });
   });
 
   it("lets only the app itself change which apps are designated", () => {

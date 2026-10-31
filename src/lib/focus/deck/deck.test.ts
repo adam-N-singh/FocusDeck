@@ -166,6 +166,14 @@ describe("deck: trust controls", () => {
     expect(deck.loops.find((l) => l.source === "aaa111")?.closedAtMinute).toBeUndefined();
   });
 
+  it("never closes another session's loop when you reply in a session that wasn't blocked", () => {
+    const deck = run(day("writing"), contextFor(),
+      ev(545, "agent-needs-input", "claude-code", "aaa111"),
+      { type: "agent-resumed", at: 550, app: "claude-code", source: "zzz999" },
+    );
+    expect(deck.loops[0].closedAtMinute).toBeUndefined();
+  });
+
   it("stays quiet in the first build hour once you've asked it to", () => {
     const model = { ...createDemoModel(), quietFirstBuildHour: true };
     const deck = run(day(), contextFor(model), ev(560, "agent-needs-input", "claude-code"));

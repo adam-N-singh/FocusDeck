@@ -40,10 +40,15 @@ export function closeLoop(loops: OpenLoop[], id: string, minute: number, by: Loo
   return loops.map((loop) => (loop.id === id && isOpen(loop) ? { ...loop, closedAtMinute: minute, closedBy: by } : loop));
 }
 
-/** The loop an "agent resumed" signal closes: same session if known, else the oldest on that app. */
+/**
+ * The loop an "agent resumed" signal closes. With a session id, only that
+ * session's loop — replying in one session must never close another's.
+ * Without one (a sensor that can't tell sessions apart, or a tap in the app),
+ * the oldest open loop on that app.
+ */
 export function findLoopForResume(loops: OpenLoop[], app: AppId, source?: string): OpenLoop | undefined {
   const open = openLoopsOldestFirst(loops).filter((loop) => loop.app === app);
-  return (source ? open.find((loop) => loop.source === source) : undefined) ?? open[0];
+  return source ? open.find((loop) => loop.source === source) : open[0];
 }
 
 export interface LoopSummary {
