@@ -1,4 +1,6 @@
+import { appLabel } from "./apps";
 import { classifyNotification } from "./classifier";
+import { MODE_BY_ID, resolveMode, type ModeMap } from "./modes";
 import type { FocusEvent, ModeId, NotificationClass } from "./types";
 
 /**
@@ -17,7 +19,16 @@ import type { FocusEvent, ModeId, NotificationClass } from "./types";
  *          the safe action (batch), never to suppression of a blocked agent.
  */
 
-export type DecisionSource = "rules" | "jev" | "jev-low-confidence";
+export type DecisionSource =
+  | "rules"
+  /** System One answered with enough confidence; our thresholds chose the action. */
+  | "jev"
+  /** System One was unsure, so the safe default (batch) applied. */
+  | "jev-low-confidence"
+  /** System One is paused by the user, so the ambiguous residue took the safe default. */
+  | "safe-default"
+  /** Guarding is paused: the event passed straight through and was only logged. */
+  | "paused";
 
 export interface SystemOneAnswers {
   /** Noul: does this need the user right now? (probability true) */
@@ -36,10 +47,15 @@ export interface Decision {
   confidence: number;
   explanation: string;
   systemOne?: SystemOneAnswers;
+  /** Set when one of the user's own implementation intentions decided (policy.ts). */
+  intentionId?: string;
 }
 
+/** A System One adapter: metadata in, typed answers out. Swap the mock for a real Jev call. */
+export type SystemOneAdapter = (event: FocusEvent, activeMode: ModeId) => SystemOneAnswers;
+
 /** Policy thresholds — our choice, tunable, not the model's (per Jev usage guides). */
-export const DECISION_THRESHOLDS = { actNow: 0.8, batchAbove: 0.35 } as const;
+export const DECISION_THRESHOLDS = { actNow: 0.8, batchAbove: 0.35, minConfidence: 0.5 } as const;
 
 /**
  * Mock System One adapter. Deterministic, dependency-free, API-key-free.
@@ -63,20 +79,71 @@ export function mockSystemOne(event: FocusEvent, activeMode: ModeId): SystemOneA
   return { ...base, needsUserNow: 0.45, urgency: 0.45, confidence: 0.45 };
 }
 
+/**
+ * The exact state a real System One adapter is allowed to send — metadata
+ * only, by construction. There is no field here that could carry message or
+ * notification content; adding one is a Privacy-doc amendment first
+ * (DECISION-MODELS.md, "The Hymah constraint Jev must obey").
+ */
+export interface SystemOneState {
+  app: string;
+  eventKind: FocusEvent["kind"];
+  mode: string;
+  modeIsProtected: boolean;
+  minuteOfDay: number;
+  openLoops: number;
+  minutesInMode: number;
+}
+
+export function buildSystemOneState(
+  event: FocusEvent,
+  activeMode: ModeId,
+  extra: { modes?: ModeMap; openLoops?: number; minutesInMode?: number } = {},
+): { state: SystemOneState; questions: { id: keyof Omit<SystemOneAnswers, "confidence">; type: "noul" | "score"; text: string }[] } {
+  const mode = resolveMode(extra.modes ?? MODE_BY_ID, activeMode);
+  return {
+    state: {
+      app: appLabel(event.app),
+      eventKind: event.kind,
+      mode: mode.label,
+      modeIsProtected: mode.isProtected !== false,
+      minuteOfDay: Math.round(event.atMinute),
+      openLoops: extra.openLoops ?? 0,
+      minutesInMode: Math.round(extra.minutesInMode ?? 0),
+    },
+    questions: [
+      { id: "needsUserNow", type: "noul", text: "This event needs the user's attention right now." },
+      { id: "urgency", type: "score", text: "How urgent is this event for the user's own work?" },
+      { id: "isDefection", type: "noul", text: "This is a drift toward a distraction rather than work." },
+    ],
+  };
+}
+
+export interface DecisionContext {
+  /** The user's declared modes. Defaults to the built-ins. */
+  modes?: ModeMap;
+  /** Layer 2 is pausable (README next steps: "logged, pausable, and off the hot path"). */
+  systemOneEnabled?: boolean;
+}
+
 /** Is the deterministic rule definitive, or is this the ambiguous residue? */
-function isAmbiguous(event: FocusEvent, activeMode: ModeId): boolean {
+export function isAmbiguous(event: FocusEvent, activeMode: ModeId, modes: ModeMap = MODE_BY_ID): boolean {
   if (event.kind === "app-switch") return false;
   if (event.kind === "agent-needs-input") return false; // never model-gated: rules own this
-  if (event.kind === "notification" && activeMode === "comms") return true;
-  if (event.kind === "agent-finished" && activeMode !== "reviewing-agents") return true;
-  return false;
+  return resolveMode(modes, activeMode).ambiguous?.includes(event.kind) ?? false;
 }
 
 /** Full decision: rules first, System One for residue, safe default on doubt. */
-export function decide(event: FocusEvent, activeMode: ModeId, systemOne = mockSystemOne): Decision {
-  const ruled = classifyNotification(event, activeMode);
+export function decide(
+  event: FocusEvent,
+  activeMode: ModeId,
+  systemOne: SystemOneAdapter = mockSystemOne,
+  context: DecisionContext = {},
+): Decision {
+  const modes = context.modes ?? MODE_BY_ID;
+  const ruled = classifyNotification(event, activeMode, modes);
 
-  if (!isAmbiguous(event, activeMode)) {
+  if (!isAmbiguous(event, activeMode, modes)) {
     return {
       action: ruled.classification,
       source: "rules",
@@ -85,8 +152,17 @@ export function decide(event: FocusEvent, activeMode: ModeId, systemOne = mockSy
     };
   }
 
+  if (context.systemOneEnabled === false) {
+    return {
+      action: "batch-for-later",
+      source: "safe-default",
+      confidence: 1,
+      explanation: "System One is paused, so this ambiguous event takes the safe default: batched for your review moment.",
+    };
+  }
+
   const answers = systemOne(event, activeMode);
-  if (answers.confidence < 0.5) {
+  if (answers.confidence < DECISION_THRESHOLDS.minConfidence) {
     return {
       action: "batch-for-later",
       source: "jev-low-confidence",

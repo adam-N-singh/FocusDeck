@@ -1,4 +1,4 @@
-import { MODE_BY_ID } from "./modes";
+import { MODE_BY_ID, resolveMode, type ModeMap } from "./modes";
 import type { ClassifiedNotification, FocusEvent, ModeId } from "./types";
 
 /**
@@ -6,11 +6,19 @@ import type { ClassifiedNotification, FocusEvent, ModeId } from "./types";
  * "is that deterministic, or are you constantly running [a model]? bit of both?"
  *
  * Layer 1 (this file) is pure rules: mode allow-lists + event kind. It is
- * fast, explainable, and testable. Layer 2 (an LLM/"jev"-style pass) would
- * only handle the ambiguous residue — it is intentionally NOT in the hot path.
+ * fast, explainable, and testable. Layer 2 (a System One / Jev-style pass,
+ * see decision.ts) only handles the ambiguous residue — it is intentionally
+ * NOT in this hot path.
+ *
+ * `modes` defaults to the built-ins; pass the user's declared modes to
+ * classify against their own allow-lists.
  */
-export function classifyNotification(event: FocusEvent, activeMode: ModeId): ClassifiedNotification {
-  const mode = MODE_BY_ID[activeMode];
+export function classifyNotification(
+  event: FocusEvent,
+  activeMode: ModeId,
+  modes: ModeMap = MODE_BY_ID,
+): ClassifiedNotification {
+  const mode = resolveMode(modes, activeMode);
 
   if (mode.interruptibleBy.includes(event.kind)) {
     return {
@@ -41,8 +49,8 @@ export function classifyNotification(event: FocusEvent, activeMode: ModeId): Cla
   return { event, classification: "batch-for-later", reason: "Default: batch rather than interrupt." };
 }
 
-export function classifyAll(events: FocusEvent[]): ClassifiedNotification[] {
+export function classifyAll(events: FocusEvent[], modes: ModeMap = MODE_BY_ID): ClassifiedNotification[] {
   return events
     .filter((event) => event.kind !== "app-switch")
-    .map((event) => classifyNotification(event, event.modeAtEvent));
+    .map((event) => classifyNotification(event, event.modeAtEvent, modes));
 }
