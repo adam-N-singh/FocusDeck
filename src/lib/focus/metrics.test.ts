@@ -1,0 +1,22 @@
+import { describe, expect, it } from "vitest";
+import { computeMetrics, estimatedLostMinutes } from "./metrics";
+import { POST_DAY_EVENTS } from "./scenarios";
+
+describe("computeMetrics on the X-post day", () => {
+  const metrics = computeMetrics(POST_DAY_EVENTS);
+
+  it("counts every app switch, and flags out-of-mode ones as context switches", () => {
+    expect(metrics.totalSwitches).toBe(6);
+    // slack, claude-code, browser-x are all outside Building's allow-list
+    expect(metrics.contextSwitches).toBe(3);
+  });
+
+  it("counts the blocked agent in Writing as an open loop, not an interruption", () => {
+    expect(metrics.openLoops).toBe(1);
+    expect(metrics.interruptionsAvoided).toBeGreaterThanOrEqual(2); // p9 notification + p10 blocked agent
+  });
+
+  it("estimates a positive refocus cost", () => {
+    expect(estimatedLostMinutes(metrics)).toBeGreaterThan(0);
+  });
+});
