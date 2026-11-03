@@ -73,6 +73,9 @@ shows you commands; it never installs or runs anything itself.
 
 - **Claude Code** — a hook that reports when a session blocks on you, finishes,
   or resumes, without reading any message content.
+- **Browser sites** — a Chromium extension that tells X from docs by matching
+  the tab's hostname against your site lists *inside the browser*. Only the
+  category is sent.
 - **macOS app switches** — an untested Stage 0 spike.
 - **Your own** — a folder with a `manifest.json`, in `sensors/` or wherever
   `FOCUSDECK_CONNECTORS_DIR` points: [`sensors/CONTRIBUTING.md`](./sensors/CONTRIBUTING.md).

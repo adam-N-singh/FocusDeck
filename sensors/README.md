@@ -18,6 +18,7 @@ designated is never sent (ASSESSMENT.md §4.7). And content is never collected
 | Sensor | Reports | Status |
 | --- | --- | --- |
 | [`claude-code/`](claude-code/README.md) | `agent-needs-input`, `agent-finished` and `agent-resumed`, from Claude Code hooks | Tested. Unit tests, plus end-to-end runs against the real bridge |
+| [`browser/`](browser/README.md) | `app-switch` for the browser categories (X, docs), matched by hostname inside the browser; only the category is sent | Tested in headless Chromium, against a stand-in bridge and once against the real one. Not yet run in a windowed browser, or on macOS or Windows |
 | [`macos/`](macos/README.md) | `app-switch` for designated desktop apps | **Untested spike.** Written without a Mac or a Swift toolchain |
 
 ## The bridge contract
@@ -54,6 +55,9 @@ field rejects the whole event.
 
 - The bridge answers on loopback only, unless `FOCUSDECK_ALLOWED_HOSTS` is set.
 - Writes need `Content-Type: application/json`.
+- Requests from a Chromium extension's origin (`chrome-extension://<id>`) are
+  treated as a sensor's (the browser connector), never as the FocusDeck page.
+  Web pages can't send that origin.
 - If the server sets `FOCUSDECK_SENSOR_TOKEN`, every request needs
   `Authorization: Bearer <token>` — reads included, and the FocusDeck page too
   (enter the token under Sources). A same-origin header can be spoofed by any

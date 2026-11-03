@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128">
+  <!-- Source for icon16/32/48/128.png: a browser window, and the one signal it sends. -->
+  <rect width="128" height="128" rx="28" fill="#18181b"/>
+  <rect x="22" y="28" width="84" height="72" rx="12" fill="none" stroke="#e4e4e7" stroke-width="10"/>
+  <path d="M22 50h84" stroke="#e4e4e7" stroke-width="10"/>
+  <circle cx="64" cy="76" r="13" fill="#34d399"/>
+</svg>

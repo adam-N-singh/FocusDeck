@@ -63,7 +63,7 @@ connector marketplace to hook it up to the apps it watches.
 |---|---|---|
 | Use my AI subscriptions | System Two runs on Claude Code (Claude plans), Codex CLI (ChatGPT plans) or Gemini CLI (Google account), each run unmodified and signed in as you; plus API keys (Anthropic, OpenAI, Gemini, OpenRouter, any compatible endpoint) and local models (Ollama, LM Studio). Picker and Test on **Connect** | Done; adapters tested with stubbed processes and HTTP; not run against live models (below) |
 | A connector marketplace | `/connect`: search, categories, verified/community, what each connector sends and never sends, setup filled in for this machine, live status per connector, Add/Remove; manifests in `sensors/*/manifest.json` or `FOCUSDECK_CONNECTORS_DIR` | Done; verified in Chromium end to end with the Claude Code connector |
-| Connect the apps it monitors | Claude Code and macOS connectors, with manifests; more are listed in `sensors/README.md` with their status | See each connector's status |
+| Connect the apps it monitors | Connectors for Claude Code, browser sites (new) and macOS, with manifests; all are listed in `sensors/README.md` with their status | See each connector's status |
 
 ### AI providers and their terms
 
@@ -166,11 +166,20 @@ These are documented rather than solved, as asked; each says what it needs.
    first run on a Mac (`swift sensors/macos/FocusDeckSensor.swift`). Its claim
    that it needs no Accessibility or Screen Recording permission rests on
    secondary sources.
-2. **Telling "X in a browser" from "docs in a browser" needs the URL**, which
-   no sensor here reads. A browser extension could match designated sites
-   locally and emit only the category — but Hymah's v1 spec excludes browser
-   extensions, so whether that fits is a product decision. Until then, the two
-   browser categories only arrive from manual events or a custom sensor.
+2. **Telling "X in a browser" from "docs in a browser" needs the URL.** The
+   browser connector (`sensors/browser/`) settles it without sending one. It
+   matches the tab's hostname against your site lists inside the browser and
+   sends only the category.
+   - It needs Chrome's `tabs` permission, which Chrome describes as "Read your
+     browsing history".
+   - Hymah's v1 spec excluded browser extensions, so it is optional and off
+     until you load it.
+   - It ran in headless Chromium, both against a stand-in bridge and against
+     the real one. It wasn't run in a windowed Chrome, Edge, Brave or Arc, or
+     on macOS or Windows.
+   - The bridge now accepts the extension's `chrome-extension://` origin as a
+     sensor. Its first version refused it, which the connector's own test
+     found.
 3. **No real Jev (TypeSafe System One) adapter.** Jev is early access, and no
    API documentation or key was available. The seam is ready: an adapter type,
    a metadata-only `buildSystemOneState` that defines exactly what a real call
@@ -213,6 +222,7 @@ These are documented rather than solved, as asked; each says what it needs.
 3. Replace the simulator's assumptions with that week, then re-read the three
    questions on `/lab`; label ambiguous events so System One's calibration is
    measured, not assumed.
-4. Decide on the browser-category sensor (note 2).
+4. Load the browser connector in your everyday browser, and check that
+   switching to X and back reads right in Today's log (note 2).
 5. Wire a real Jev adapter behind the existing seam, and keep it off the hot
    path until the calibration spike says it has earned its place.

@@ -122,6 +122,19 @@ describe("bridge trust", () => {
     expect(checkTrust(facts({ secFetchSite: "same-origin", authorization: "Bearer s3cret-token" }), config, "write-config")).toEqual({ ok: true, via: "browser" });
   });
 
+  it("accepts the browser connector's extension origin as a sensor — never as the FocusDeck page", () => {
+    const extension = "chrome-extension://abcdefghijklmnopabcdefghijklmnop";
+    expect(checkTrust(facts({ origin: extension }), {}, "write")).toEqual({ ok: true, via: "sensor" });
+    expect(checkTrust(facts({ origin: extension, secFetchSite: "cross-site" }), {}, "write")).toEqual({ ok: true, via: "sensor" });
+    expect(checkTrust(facts({ origin: extension, secFetchSite: "same-origin" }), {}, "write-config").ok).toBe(false);
+    expect(checkTrust(facts({ origin: extension }), { token: "t" }, "write")).toMatchObject({ ok: false, status: 401 });
+    expect(checkTrust(facts({ origin: extension, authorization: "Bearer t" }), { token: "t" }, "write")).toEqual({ ok: true, via: "sensor" });
+    for (const forged of ["chrome-extension://evil.example", "moz-extension://abcdefghijklmnopabcdefghijklmnop", "https://abcdefghijklmnopabcdefghijklmnop"]) {
+      expect(checkTrust(facts({ origin: forged }), {}, "write").ok).toBe(false);
+    }
+    expect(checkTrust(facts({ origin: extension, host: "evil.example" }), {}, "write").ok).toBe(false); // DNS rebinding still refused
+  });
+
   it("lets only the app itself change which apps are designated", () => {
     expect(checkTrust(facts({}), {}, "write-config").ok).toBe(false);
     expect(checkTrust(facts({ secFetchSite: "same-origin" }), {}, "write-config").ok).toBe(true);

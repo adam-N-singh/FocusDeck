@@ -28,6 +28,14 @@ export type TrustVerdict =
 
 const LOOPBACK = ["localhost", "127.0.0.1", "[::1]"];
 
+/**
+ * A Chromium extension's origin (the browser connector). Pages can't forge an
+ * Origin header, so this can only be an installed extension holding host
+ * permission for this machine, or a local process; both are trusted like any
+ * other sensor, never as the FocusDeck page.
+ */
+const EXTENSION_ORIGIN = /^chrome-extension:\/\/[a-p]{32}$/;
+
 /** "localhost:3000" → "localhost", "[::1]:3000" → "[::1]". */
 export function hostName(host: string): string {
   const trimmed = host.trim().toLowerCase();
@@ -47,17 +55,18 @@ export function checkTrust(facts: RequestFacts, config: TrustConfig, need: Trust
   if (!facts.host || !allowed.includes(hostName(facts.host))) {
     return { ok: false, status: 403, reason: "The FocusDeck bridge only answers on this machine. Set FOCUSDECK_ALLOWED_HOSTS (with a token) to expose it." };
   }
-  if (facts.secFetchSite === "cross-site" || facts.secFetchSite === "same-site") {
+  const fromExtension = facts.origin !== null && EXTENSION_ORIGIN.test(facts.origin);
+  if (!fromExtension && (facts.secFetchSite === "cross-site" || facts.secFetchSite === "same-site")) {
     return { ok: false, status: 403, reason: "Cross-site requests are refused." };
   }
-  if (facts.origin && facts.origin !== "null") {
+  if (facts.origin && facts.origin !== "null" && !fromExtension) {
     const sameOrigin = [`http://${facts.host}`, `https://${facts.host}`].includes(facts.origin.toLowerCase());
     if (!sameOrigin) return { ok: false, status: 403, reason: "Requests from other origins are refused." };
   }
   if (need !== "read" && !(facts.contentType ?? "").toLowerCase().includes("application/json")) {
     return { ok: false, status: 415, reason: "Send JSON (Content-Type: application/json)." };
   }
-  const via = facts.secFetchSite === "same-origin" ? "browser" : "sensor";
+  const via = facts.secFetchSite === "same-origin" && !fromExtension ? "browser" : "sensor";
   if (config.token) {
     // Any client can claim to be a same-origin browser, so once a token is set it is the
     // only boundary: every client presents it, the FocusDeck page included.
