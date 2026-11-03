@@ -153,7 +153,7 @@ export interface DeckContext {
 }
 
 export type DeckAction =
-  | { type: "event"; at: number; input: { kind: EventKind; app: AppId; label?: string; source?: string; origin?: EventOrigin } }
+  | { type: "event"; at: number; input: { kind: EventKind; app: AppId; label?: string; source?: string; origin?: EventOrigin; via?: string } }
   | { type: "agent-resumed"; at: number; app: AppId; source?: string }
   | { type: "tick"; at: number }
   | { type: "set-mode"; at: number; mode: ModeId }

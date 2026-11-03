@@ -2,6 +2,7 @@
 
 import { useEffect, type ReactNode } from "react";
 import { pollBridge, pushBridgeConfig } from "@/lib/client/bridgeClient";
+import { refreshConnectors } from "@/lib/client/connectors";
 import { advanceDemo } from "@/lib/client/demo";
 import { electLeader } from "@/lib/client/leader";
 import { contextFor, store } from "@/lib/client/store";
@@ -35,6 +36,9 @@ export function DeckProvider({ children }: { children: ReactNode }) {
       void pushBridgeConfig().then(() => pollBridge());
     };
 
+    // Connectors can introduce apps; load them once so every screen can name them.
+    void refreshConnectors();
+
     const stopElection = electLeader((leader) => {
       if (!leader) store.flush();
       store.hydrate(leader);
@@ -51,12 +55,12 @@ export function DeckProvider({ children }: { children: ReactNode }) {
     window.addEventListener("pagehide", flush);
     document.addEventListener("visibilitychange", flush);
 
-    // Keep the bridge's designated-app filter in step with your model — including after
+    // Keep the bridge's designated-app filter (and site lists) in step with your model — including after
     // the bridge is switched back on, since changes made while it was off weren't sent.
     let designated = "";
     const unsubscribe = store.subscribe(() => {
       const { leader, hydrated, model, bridge } = store.getSnapshot();
-      const key = `${bridge.enabled}|${model.designatedApps.join(",")}`;
+      const key = `${bridge.enabled}|${model.designatedApps.join(",")}|${JSON.stringify(model.sites)}`;
       if (leader && hydrated && key !== designated) {
         designated = key;
         void pushBridgeConfig();

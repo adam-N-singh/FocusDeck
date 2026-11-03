@@ -5,7 +5,7 @@ import type { AddressInfo } from "node:net";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { SOURCE_PATTERN, parseSensorEvent } from "../../src/lib/bridge/intake";
-import { APP, NEEDS_INPUT_NOTIFICATIONS, hashSession, toSensorEvent } from "./mapping.mjs";
+import { APP, NEEDS_INPUT_NOTIFICATIONS, VIA, hashSession, toSensorEvent } from "./mapping.mjs";
 
 const HOOK = fileURLToPath(new URL("./focusdeck-hook.mjs", import.meta.url));
 const SESSION = "00893aaf-19fa-41d2-8238-13269b9b3ca0";
@@ -42,8 +42,9 @@ describe("Claude Code hook → FocusDeck event", () => {
     { hook: "Stop", input: stop, kind: "agent-finished" },
     { hook: "UserPromptSubmit", input: prompt, kind: "agent-resumed" },
   ])("maps $hook to $kind", ({ input, kind }) => {
-    expect(toSensorEvent(input)).toEqual({ kind, app: APP, source: SOURCE });
+    expect(toSensorEvent(input)).toEqual({ kind, app: APP, source: SOURCE, via: VIA });
     expect(APP).toBe("claude-code");
+    expect(VIA).toBe("claude-code");
   });
 
   it.each([...NEEDS_INPUT_NOTIFICATIONS, undefined])("treats a %s notification as the session being blocked on you", (type) => {
@@ -68,16 +69,16 @@ describe("Claude Code hook → FocusDeck event", () => {
 describe("Class E: content never leaves the mapping", () => {
   const needles = [SECRET, SESSION, "acme-payroll", ".jsonl", "/Users", "permission", "password", "Rotated", "tail logs", "0 9 * * 1-5", "payroll"];
 
-  it.each([notification, stop, prompt])("emits only kind, app and source for $hook_event_name", (input) => {
+  it.each([notification, stop, prompt])("emits only kind, app, source and via for $hook_event_name", (input) => {
     const event = toSensorEvent(input);
-    expect(Object.keys(event ?? {}).sort()).toEqual(["app", "kind", "source"]);
+    expect(Object.keys(event ?? {}).sort()).toEqual(["app", "kind", "source", "via"]);
     const wire = JSON.stringify(event);
     for (const needle of needles) expect(wire).not.toContain(needle);
   });
 
   it("builds the event from constants, so input fields named like event fields cannot ride along", () => {
     const sneaky = { ...prompt, kind: "app-switch", app: "slack", source: "alice@example.com", at: 0, url: "https://x.com", title: SECRET };
-    expect(toSensorEvent(sneaky)).toEqual({ kind: "agent-resumed", app: "claude-code", source: SOURCE });
+    expect(toSensorEvent({ ...sneaky, via: "slack" })).toEqual({ kind: "agent-resumed", app: "claude-code", source: SOURCE, via: "claude-code" });
   });
 
   it.each([notification, stop, prompt])("passes the bridge's own intake contract for $hook_event_name", (input) => {
@@ -100,7 +101,7 @@ describe("session hashing: stable and opaque", () => {
   });
 
   it.each([undefined, "", 12345, null])("omits source when session_id is %s", (sessionId) => {
-    expect(toSensorEvent({ ...stop, session_id: sessionId })).toEqual({ kind: "agent-finished", app: "claude-code" });
+    expect(toSensorEvent({ ...stop, session_id: sessionId })).toEqual({ kind: "agent-finished", app: "claude-code", via: "claude-code" });
   });
 });
 
@@ -161,7 +162,7 @@ describe("focusdeck-hook.mjs end to end", { timeout: 15_000 }, () => {
     expect(request).toMatchObject({ method: "POST", url: "/api/sensor/events" });
     expect(request.headers["content-type"]).toContain("application/json");
     expect(request.headers.authorization).toBe("Bearer t0ken");
-    expect(JSON.parse(request.body)).toEqual({ kind: "agent-resumed", app: "claude-code", source: SOURCE });
+    expect(JSON.parse(request.body)).toEqual({ kind: "agent-resumed", app: "claude-code", source: SOURCE, via: "claude-code" });
     for (const needle of [SECRET, SESSION, "payroll"]) expect(request.body).not.toContain(needle);
   });
 
@@ -188,6 +189,14 @@ describe("focusdeck-hook.mjs end to end", { timeout: 15_000 }, () => {
     expect(bridge.received).toHaveLength(1);
     expect(run.ms).toBeGreaterThanOrEqual(1400);
     expect(run.ms).toBeLessThan(3500); // the AbortController fired, not the 4 s backstop
+  });
+
+  it("sends nothing when FocusDeck itself is running Claude Code (FOCUSDECK_INTERNAL=1)", async () => {
+    const bridge = await fakeBridge();
+    const run = await runHook(JSON.stringify(stop), { FOCUSDECK_URL: bridge.url, FOCUSDECK_INTERNAL: "1", FOCUSDECK_DEBUG: "1" });
+    await bridge.close();
+    expect(run).toMatchObject({ code: 0, stdout: "", stderr: "" });
+    expect(bridge.received).toHaveLength(0);
   });
 
   it("exits 0 and sends nothing on bad input or unmapped events", async () => {

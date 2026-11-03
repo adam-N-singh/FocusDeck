@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AGENT_APPS, appLabel } from "@/lib/focus/apps";
+import { appLabel, isAgentApp } from "@/lib/focus/apps";
 import type { AppId, EventKind } from "@/lib/focus/types";
 import { useDeck } from "@/lib/client/hooks";
 import { KEYS, readJson, writeJson } from "@/lib/client/persist";
@@ -52,7 +52,7 @@ export function SourcesPanel() {
 
   return (
     <Panel title="Sources" kicker="How FocusDeck notices">
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="space-y-2 rounded-xl bg-zinc-950/60 p-4">
           <div className="flex items-center justify-between gap-2">
             <h3 className="text-sm font-medium text-zinc-200">Sensor bridge</h3>
@@ -103,7 +103,7 @@ export function SourcesPanel() {
               ))}
             </div>
           )}
-          {model.designatedApps.some((a) => AGENT_APPS.includes(a)) && (
+          {model.designatedApps.some(isAgentApp) && (
             <Button size="sm" variant="ghost" onClick={() => store.dispatch({ type: "agent-resumed", at: store.now(), app: "claude-code" })}>
               The agent resumed (I replied)
             </Button>

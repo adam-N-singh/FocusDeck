@@ -33,12 +33,34 @@ describe("the declared model", () => {
   it("round-trips through storage and drops anything it doesn't recognise", () => {
     const model = createDemoModel();
     expect(normalizeModel(JSON.parse(JSON.stringify(model)))).toEqual(model);
-    const tampered = { ...JSON.parse(JSON.stringify(model)), designatedApps: ["editor", "keylogger"], reviewEveryMinutes: 2, windowTitles: ["secret"] };
+    // Connectors can introduce apps, so any well-formed id survives; malformed ones never do.
+    const tampered = { ...JSON.parse(JSON.stringify(model)), designatedApps: ["editor", "Key Logger!", "../etc", 42, "codex"], reviewEveryMinutes: 2, windowTitles: ["secret"] };
     const loaded = normalizeModel(tampered)!;
-    expect(loaded.designatedApps).toEqual(["editor"]);
+    expect(loaded.designatedApps).toEqual(["editor", "codex"]);
     expect(loaded.reviewEveryMinutes).toBe(15);
     expect("windowTitles" in loaded).toBe(false);
     expect(normalizeModel({ hello: "world" })).toBeNull();
+  });
+
+  it("loads site lists, connectors and the System Two provider defensively", () => {
+    const saved = JSON.parse(JSON.stringify(createDemoModel()));
+    delete saved.sites;
+    delete saved.connectors;
+    delete saved.systemTwoProvider;
+    const old = normalizeModel(saved)!;
+    expect(old.sites["browser-x"]).toEqual(["x.com", "twitter.com"]);
+    expect(old.connectors).toEqual([]);
+    expect(old.systemTwoProvider).toBe("anthropic");
+
+    const odd = normalizeModel({
+      ...saved,
+      sites: { "browser-x": ["https://www.X.com/home", "not a host", "x.com"], "browser-docs": [], "Bad Key": ["a.com"] },
+      connectors: ["claude-code", "claude-code", "Nope!", 7],
+      systemTwoProvider: "skynet",
+    })!;
+    expect(odd.sites).toEqual({ "browser-x": ["x.com"], "browser-docs": [] });
+    expect(odd.connectors).toEqual(["claude-code"]);
+    expect(odd.systemTwoProvider).toBe("anthropic");
   });
 });
 

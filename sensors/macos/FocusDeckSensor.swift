@@ -97,7 +97,7 @@ final class Sensor {
         guard let bundleId = app?.bundleIdentifier, let id = appByBundleId[bundleId] else { return }
         guard id != lastSent else { return }
         lastSent = id
-        guard let body = try? JSONEncoder().encode(["kind": "app-switch", "app": id]),
+        guard let body = try? JSONEncoder().encode(["kind": "app-switch", "app": id, "via": "macos"]),
               let request = makeRequest("/api/sensor/events", body: body) else { return }
         if debugSwitches { print("FocusDeck sensor: app-switch \(id)") }
         // Fire and forget: if FocusDeck isn't running, the switch simply isn't seen.

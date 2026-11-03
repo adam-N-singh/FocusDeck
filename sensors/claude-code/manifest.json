@@ -1,0 +1,70 @@
+{
+  "id": "claude-code",
+  "name": "Claude Code",
+  "publisher": "FocusDeck",
+  "version": "0.2.0",
+  "category": "agents",
+  "summary": "Knows when a Claude Code session is blocked on you, finishes, or picks up again.",
+  "description": "A Claude Code hook that turns three moments into metadata events: a session needs your answer (a permission prompt or a question), a session finishes its turn, and you reply. Replying closes that session's open loop on its own. Each session is identified by a 16-character hash; nothing you or Claude wrote leaves the hook, and it never blocks Claude Code: it runs asynchronously, times out after 1.5 s and always exits cleanly.",
+  "status": "ready",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "emits": [
+    {
+      "kind": "agent-needs-input",
+      "app": "claude-code",
+      "when": "A session is waiting on a permission prompt or a question for you"
+    },
+    {
+      "kind": "agent-finished",
+      "app": "claude-code",
+      "when": "A session finishes its turn"
+    },
+    {
+      "kind": "agent-resumed",
+      "app": "claude-code",
+      "when": "You send that session a prompt, which closes its open loop"
+    }
+  ],
+  "privacy": {
+    "sends": [
+      "kind",
+      "app",
+      "source",
+      "via"
+    ],
+    "neverSends": [
+      "Your prompts",
+      "Claude's replies, or the text of any notification",
+      "Tool inputs, commands or their output",
+      "File paths, the working directory or the transcript path",
+      "Session titles or raw session ids (only a 16-character hash)"
+    ]
+  },
+  "requirements": [
+    "Node 18+",
+    "Claude Code with hooks support"
+  ],
+  "setup": [
+    {
+      "title": "Add the hook to your Claude Code settings",
+      "body": "Merge this into ~/.claude/settings.json to cover every project, or into .claude/settings.json in one project. The path and URL are already filled in for this machine. If you set FOCUSDECK_SENSOR_TOKEN on the server, add it under \"env\" as well.",
+      "code": {
+        "language": "json",
+        "content": "{\n  \"env\": {\n    \"FOCUSDECK_URL\": \"{{FOCUSDECK_URL}}\"\n  },\n  \"hooks\": {\n    \"Notification\": [\n      {\n        \"matcher\": \"permission_prompt|elicitation_dialog|elicitation_url_dialog\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"node \\\"{{FOCUSDECK_DIR}}/sensors/claude-code/focusdeck-hook.mjs\\\"\",\n            \"async\": true,\n            \"timeout\": 5\n          }\n        ]\n      }\n    ],\n    \"Stop\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"node \\\"{{FOCUSDECK_DIR}}/sensors/claude-code/focusdeck-hook.mjs\\\"\",\n            \"async\": true,\n            \"timeout\": 5\n          }\n        ]\n      }\n    ],\n    \"UserPromptSubmit\": [\n      {\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"node \\\"{{FOCUSDECK_DIR}}/sensors/claude-code/focusdeck-hook.mjs\\\"\",\n            \"async\": true,\n            \"timeout\": 5\n          }\n        ]\n      }\n    ]\n  }\n}"
+      }
+    },
+    {
+      "title": "Start a new Claude Code session",
+      "body": "Hooks load when a session starts. Inside Claude Code, /hooks lists what's registered."
+    }
+  ],
+  "test": {
+    "command": "echo '{\"hook_event_name\":\"Stop\",\"session_id\":\"focusdeck-test\"}' | FOCUSDECK_URL={{FOCUSDECK_URL}} FOCUSDECK_DEBUG=1 node \"{{FOCUSDECK_DIR}}/sensors/claude-code/focusdeck-hook.mjs\"",
+    "expect": "\"focusdeck-hook: sent … -> 200\" on stderr, this connector turns live here, and \"Claude Code · session … finished\" appears in Today's log."
+  },
+  "docs": "sensors/claude-code/README.md"
+}

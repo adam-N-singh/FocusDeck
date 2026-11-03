@@ -68,6 +68,7 @@ function handleEvent(deck: DeckState, action: Extract<DeckAction, { type: "event
     source: input.source,
     origin: input.origin,
   };
+  if (input.via) event.via = input.via;
   const events = next.events.length >= MAX_EVENTS_PER_DAY ? [...next.events.slice(1), event] : [...next.events, event];
   const withEvent = { ...next, events };
   return event.kind === "app-switch" ? handleSwitch(withEvent, event, ctx) : handleAgentOrNotification(withEvent, event, ctx);

@@ -10,10 +10,15 @@
  * - stderr stays quiet unless FOCUSDECK_DEBUG=1, and even then it never echoes
  *   hook input, only the metadata event (Privacy Class E);
  * - every path exits 0: bad input, a down or slow bridge, a bug.
+ * FocusDeck sets FOCUSDECK_INTERNAL=1 when it runs Claude Code itself (System
+ * Two on your plan); those runs are FocusDeck's own, not yours, so they are
+ * never reported.
  * Node >= 18 built-ins only, zero dependencies.
  */
 import { writeSync } from "node:fs";
 import { toSensorEvent } from "./mapping.mjs";
+
+if (process.env.FOCUSDECK_INTERNAL === "1") process.exit(0);
 
 const TIMEOUT_MS = 1500;
 const DEBUG = process.env.FOCUSDECK_DEBUG === "1";

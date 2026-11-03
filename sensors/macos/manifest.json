@@ -1,0 +1,90 @@
+{
+  "id": "macos",
+  "name": "macOS app switches",
+  "publisher": "FocusDeck",
+  "version": "0.1.0",
+  "category": "os",
+  "summary": "Notices when you switch to a designated Mac app, by bundle id and nothing else.",
+  "description": "A single-file Swift program that listens for macOS's app-activation notification, maps the app's bundle id onto your designated apps, and drops everything else on your Mac before anything is sent. It reads no window titles, URLs or content, so it needs no Accessibility or Screen Recording permission. It is an untested spike: this build environment has no macOS, so it has never been compiled or run.",
+  "status": "spike",
+  "platforms": [
+    "macos"
+  ],
+  "emits": [
+    {
+      "kind": "app-switch",
+      "app": "editor",
+      "when": "You switch to VS Code, Zed, Xcode or IntelliJ"
+    },
+    {
+      "kind": "app-switch",
+      "app": "terminal",
+      "when": "You switch to Terminal, iTerm2, Warp or Ghostty"
+    },
+    {
+      "kind": "app-switch",
+      "app": "notes",
+      "when": "You switch to Notes, Obsidian or Notion"
+    },
+    {
+      "kind": "app-switch",
+      "app": "claude-code",
+      "when": "You switch to the Claude desktop app"
+    },
+    {
+      "kind": "app-switch",
+      "app": "cursor-agent",
+      "when": "You switch to Cursor"
+    },
+    {
+      "kind": "app-switch",
+      "app": "slack",
+      "when": "You switch to Slack"
+    },
+    {
+      "kind": "app-switch",
+      "app": "calendar",
+      "when": "You switch to Calendar"
+    }
+  ],
+  "privacy": {
+    "sends": [
+      "kind",
+      "app",
+      "via"
+    ],
+    "neverSends": [
+      "Window titles, or anything a window shows",
+      "URLs, documents or file names",
+      "Apps you haven't designated: they're dropped on your Mac, before anything is sent",
+      "Keystrokes, clicks or screenshots"
+    ]
+  },
+  "requirements": [
+    "macOS 13+",
+    "Xcode Command Line Tools (for swift)"
+  ],
+  "setup": [
+    {
+      "title": "Run the sensor",
+      "body": "It runs until you press Ctrl-C, and re-reads your designated apps from FocusDeck every minute.",
+      "code": {
+        "language": "bash",
+        "content": "FOCUSDECK_URL={{FOCUSDECK_URL}} swift \"{{FOCUSDECK_DIR}}/sensors/macos/FocusDeckSensor.swift\""
+      }
+    },
+    {
+      "title": "Optional: compile it once",
+      "body": "A compiled binary starts instantly; run it from a login item if you want it always on.",
+      "code": {
+        "language": "bash",
+        "content": "swiftc -O \"{{FOCUSDECK_DIR}}/sensors/macos/FocusDeckSensor.swift\" -o ~/focusdeck-sensor\nFOCUSDECK_URL={{FOCUSDECK_URL}} ~/focusdeck-sensor"
+      }
+    }
+  ],
+  "test": {
+    "command": "curl -s -X POST {{FOCUSDECK_URL}}/api/sensor/events -H 'content-type: application/json' -d '{\"kind\":\"app-switch\",\"app\":\"editor\",\"via\":\"macos\"}'",
+    "expect": "{\"accepted\":1,…} and \"Switched to Editor\" in Today's log. This checks the bridge and your designation, not the Swift program itself."
+  },
+  "docs": "sensors/macos/README.md"
+}

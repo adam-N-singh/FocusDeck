@@ -9,9 +9,9 @@ export type BuiltInModeId = "building" | "writing" | "reviewing-agents" | "comms
  */
 export type ModeId = BuiltInModeId | (string & {});
 
-export type AppId =
-  | "editor" | "terminal" | "claude-code" | "cursor-agent"
-  | "slack" | "browser-docs" | "browser-x" | "notes" | "calendar";
+/** Built-in apps plus any a marketplace connector introduced — see apps.ts. */
+export type { AppId } from "./apps";
+import type { AppId } from "./apps";
 
 export type EventKind = "app-switch" | "notification" | "agent-needs-input" | "agent-finished";
 
@@ -33,6 +33,8 @@ export interface FocusEvent {
    */
   source?: string;
   origin?: EventOrigin;
+  /** Which connector reported it (a marketplace id), when a sensor said so. */
+  via?: string;
 }
 
 export interface ClassifiedNotification {
