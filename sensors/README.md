@@ -1,9 +1,15 @@
-# Sensors
+# Sensors (connectors)
 
 Sensors are thin native programs that report metadata-only events to
 FocusDeck's local sensor bridge. ASSESSMENT.md §6 sets the approach: spike the
 sensor first, keep it thin, and let the tested decision layer sit behind a
 minimal bridge.
+
+Each sensor folder has a `manifest.json`, which lists it in the connector
+marketplace on FocusDeck's **Connect** screen. There you can see what each
+connector sends and never sends, copy setup steps already filled in for your
+machine, and watch it go live. To build one, see
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 Two rules hold for every sensor. Filtering happens *at the sensor*: what isn't
 designated is never sent (ASSESSMENT.md §4.7). And content is never collected
@@ -19,15 +25,16 @@ designated is never sent (ASSESSMENT.md §4.7). And content is never collected
 The contract is defined in `src/lib/bridge/` (`intake.ts`, `trust.ts`,
 `store.ts`).
 
-**An event is `{ kind, app, source?, at? }` and nothing else.** Any other field
-rejects the whole event.
+**An event is `{ kind, app, source?, at?, via? }` and nothing else.** Any other
+field rejects the whole event.
 
 | Field | Meaning |
 | --- | --- |
 | `kind` | `app-switch`, `notification`, `agent-needs-input`, `agent-finished` or `agent-resumed` |
-| `app` | A catalog id from `src/lib/focus/apps.ts` (`editor`, `terminal`, `claude-code`, …). Sensors map native ids onto these |
+| `app` | An app id: built in (`src/lib/focus/apps.ts`: `editor`, `terminal`, `claude-code`, …) or introduced by a connector's manifest. Sensors map native ids onto these |
 | `source` | An opaque id matching `/^[A-Za-z0-9_-]{1,64}$/`. Hash native ids at the sensor |
 | `at` | Epoch ms or ISO time, within the last day. Defaults to arrival time |
+| `via` | The connector's manifest id (`claude-code`, `macos`, …), so the Connect screen can show each connector's status |
 
 **Endpoints:**
 
@@ -37,7 +44,11 @@ rejects the whole event.
   polls this.
 - `GET /api/sensor/config` returns `designatedApps`, plus `apps: [{id,
   bundleIds}]` for designated apps only, so sensors can filter at the sensor.
-  Until the app has PUT a config, the bridge drops everything.
+  It also returns `sites` (hostnames per designated browser category) for the
+  browser connector. Until the app has PUT a config, the bridge drops
+  everything.
+- `GET /api/connectors` returns the marketplace catalog, plus per-connector
+  counts (accepted, dropped, rejected, last event time), keyed by `via`.
 
 **Trust:**
 
@@ -81,10 +92,15 @@ The two counts in the POST response mean different things:
 
 ## Writing another sensor
 
-- **Map, or drop.** Map native ids onto catalog ids, and drop anything unmapped
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the rules every connector keeps, the
+manifest format and the tests to write. In short:
+
+- **Map, or drop.** Map native ids onto app ids, and drop anything unmapped
   before it is logged or sent.
 - **Build, don't copy.** Build events from constants and hashes, never by
   copying or filtering a native payload. A field the platform adds later then
   cannot leak.
 - **Never get in the host's way.** Use short timeouts, no retries that queue up
   activity, and fail silently.
+- **Stay quiet for FocusDeck's own runs.** When `FOCUSDECK_INTERNAL=1` is set,
+  send nothing.

@@ -54,7 +54,72 @@ Two bugs were found during the build itself and fixed: replying in one Claude
 Code session could close another session's open loop, and with a sensor token
 set, a spoofed `Sec-Fetch-Site` header skipped it.
 
-## Judgment calls worth a second look
+## Second request: your AI subscriptions and a connector marketplace
+
+You asked for FocusDeck to work with your AI provider subscriptions, and for a
+connector marketplace to hook it up to the apps it watches.
+
+| Asked | Built | Status |
+|---|---|---|
+| Use my AI subscriptions | System Two runs on Claude Code (Claude plans), Codex CLI (ChatGPT plans) or Gemini CLI (Google account), each run unmodified and signed in as you; plus API keys (Anthropic, OpenAI, Gemini, OpenRouter, any compatible endpoint) and local models (Ollama, LM Studio). Picker and Test on **Connect** | Done; adapters tested with stubbed processes and HTTP; not run against live models (below) |
+| A connector marketplace | `/connect`: search, categories, verified/community, what each connector sends and never sends, setup filled in for this machine, live status per connector, Add/Remove; manifests in `sensors/*/manifest.json` or `FOCUSDECK_CONNECTORS_DIR` | Done; verified in Chromium end to end with the Claude Code connector |
+| Connect the apps it monitors | Claude Code and macOS connectors, with manifests; more are listed in `sensors/README.md` with their status | See each connector's status |
+
+### AI providers and their terms
+
+Using a subscription from another program is where the providers draw lines,
+so FocusDeck uses the one route each of them documents for scripting: their
+own CLI, unmodified, signed in by you, run on your machine. FocusDeck never
+reads, stores or forwards a login token. Every run is started by you pressing
+a button (Ask System Two, or Test) — never on a schedule.
+
+- **Anthropic** ([legal and compliance](https://code.claude.com/docs/en/legal-and-compliance)):
+  "Anthropic does not permit third-party developers to offer Claude.ai login
+  into their own applications, or to route requests through Free, Pro, Max,
+  or Ultra plan credentials on behalf of their users." The same section says
+  this does not "prevent an end user from signing in to the unmodified Claude
+  Code binary with their own Claude subscription". The
+  [Consumer Terms](https://www.anthropic.com/legal/consumer-terms) also bar
+  automated access "except when you are accessing our Services via an
+  Anthropic API Key or where we otherwise explicitly permit it".
+- **OpenAI** (Codex docs, CI/CD auth): "The right way to authenticate
+  automation is with an API key."
+- **Google** ([Gemini CLI terms](https://github.com/google-gemini/gemini-cli/blob/main/docs/resources/tos-privacy.md)):
+  "Directly accessing the services powering Gemini CLI … using third-party
+  software … is a violation of applicable terms and policies." FocusDeck runs
+  the `gemini` binary itself and never touches its credentials.
+
+My reading, not legal advice: you running your own CLI, from your own tool,
+on your own machine, is the case these terms carve out. **If FocusDeck is ever
+distributed to other people, don't offer the subscription options as a
+product feature without checking with each provider; ship the API-key and
+local-model routes instead.** Plans also have usage limits: Gemini CLI's daily
+requests are 1,000 (Code Assist), 1,500 (AI Pro), 2,000 (Ultra).
+
+How each CLI is run (flags from each one's own docs):
+
+- **Claude Code**:
+  - flags: `-p --output-format json --safe-mode --tools ""
+    --disallowedTools "mcp__*" --strict-mcp-config --settings
+    '{"disableAllHooks":true}' --disable-slash-commands --permission-mode
+    dontAsk --no-session-persistence --max-turns 1 --system-prompt-file …`;
+  - `--safe-mode` keeps your sign-in but loads no CLAUDE.md, skills, plugins,
+    hooks, MCP or memory (`--bare` would, but it doesn't use a subscription);
+  - `ANTHROPIC_API_KEY` is removed from its environment, because in `-p` mode
+    "the key is always used when present";
+  - every flag was checked against the installed Claude Code 2.1.317 and the
+    official CLI reference.
+- **Codex**:
+  - `codex exec`, read-only, in an empty folder, ignoring your config;
+  - its shell, web, image, app, plugin and multi-agent features are turned off.
+  - Codex documents no way to remove *every* tool, so this narrows what it can
+    do rather than removing it.
+- **Gemini CLI**:
+  - `-p … -o json` with a deny-all tool policy, an empty core tool list, no
+    extensions, MCP, skills or hooks, and a replaced system prompt;
+  - `@` is escaped in the input, because `@path` would make it read a local file.
+
+
 
 - **Modes are user-declared.** `ModeId` widened from five fixed ids to any
   string; the five built-ins can be edited but not deleted.
@@ -81,7 +146,15 @@ set, a spoofed `Sec-Fetch-Site` header skipped it.
 - **System Two** calls `claude-opus-5-5` with an explicit effort and
   server-side refusal fallback enabled (`fallbacks: "default"`); set
   `FOCUSDECK_SYSTEM_TWO_MODEL` to change the model.
-- **The app catalog is fixed** at the nine apps the prototype used.
+- **App ids are open.** Nine apps are built in; a connector may introduce more
+  (`codex`, `github`). Anything well formed passes intake, and designation
+  stays the only gate.
+- **Removing a connector** undesignates only the apps it introduced; built-in
+  apps stay as you set them, since another connector or you may rely on them.
+- **Subscription CLIs run on the CLI's own default model** unless you set
+  `FOCUSDECK_<CLAUDE|CODEX|GEMINI>_CLI_MODEL`; API defaults are each
+  provider's documented ids (`gpt-5.5`, `gemini-3.8-flash`, `openai/gpt-5.2`,
+  `gpt-oss:20b`).
 
 ## Couldn't be done or verified here
 
@@ -103,11 +176,21 @@ These are documented rather than solved, as asked; each says what it needs.
    a metadata-only `buildSystemOneState` that defines exactly what a real call
    may send, and the calibration spike to evaluate it on your labels before it
    touches the hot path.
-4. **System Two was not run against the live Claude API** — there were no
-   credentials, and a call spends real money. Its request shape was written
-   against the installed `@anthropic-ai/sdk` types and is tested with a fake
-   client (answers, refusals, missing credentials, malformed JSON). Without a
-   key, the template is what runs.
+4. **No System Two provider was run against a live model.** No API key or
+   signed-in subscription was available to spend here.
+   - The Anthropic request shape follows the installed SDK's types.
+   - The other adapters follow each provider's docs.
+   - All are tested with stubbed HTTP and stubbed processes: answers,
+     refusals, bad keys, old CLIs, timeouts and malformed JSON.
+   - One real process run is exercised: a stand-in `gemini` script on `PATH`.
+   - Codex and Gemini CLI aren't installed here. Gemini's compatibility
+     endpoint accepting a raw `json_schema` body is unverified; a 400
+     triggers the prompt-schema fallback.
+   - Ollama's minimum version for `json_schema` is unverified.
+   - On Windows, the npm-installed CLIs are `.cmd` wrappers that can't be
+     started without a shell, so FocusDeck asks you to use WSL instead.
+
+   Without a working provider, the template is what runs.
 5. **The Claude Code hook was not run inside a live Claude Code session.** It
    was tested against the documented hook input shapes and end to end against
    the bridge. Background sessions in agent view are undocumented.

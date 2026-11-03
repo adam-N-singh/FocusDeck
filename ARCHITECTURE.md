@@ -7,18 +7,20 @@ the product inherits: replacement never restriction, an inspectable model,
 content never collected, an honest mirror.
 
 ```
- sensors (thin, native)          sensor bridge (Next.js route handlers)       browser (local-first)
- ─────────────────────           ──────────────────────────────────────       ───────────────────────────────────────────
- Claude Code hook ──┐            POST /api/sensor/events                      DeckProvider (root layout)
- macOS app switches ├─ metadata ─▶  strict intake: {kind, app, source, at}  ◀─ polls GET /api/sensor/events?after=seq
- anything else ─────┘   only        any other field rejects the event          │   pushes designated apps (PUT config)
-        ▲                           designated-app filter (defense in depth)   ▼
-        │                           in-memory ring buffer                     store (useSyncExternalStore)
-        └── GET /api/sensor/config ◀─ designated apps + bundle ids             │  live deck ── reduceDeck(action, model)
-            (filter AT the sensor)                                             │  demo deck ── same reducer, virtual clock
-                                                                               │  model, history ── localStorage only
-                                     POST /api/system-two  ◀── opt-in, on demand: aggregates + your declared words
-                                       Claude (Layer 3)          (never events), template on any failure
+ connectors (thin, native)       sensor bridge (Next.js route handlers)        browser (local-first)
+ ─────────────────────────       ──────────────────────────────────────        ───────────────────────────────────────────
+ Claude Code hook ──┐            POST /api/sensor/events                       DeckProvider (root layout)
+ browser extension  │ metadata   strict intake: {kind, app, source, at, via} ◀─ polls GET /api/sensor/events?after=seq
+ macOS app switches ├── only ──▶   any other field rejects the event            │   pushes designated apps + site lists
+ Codex, Cursor, …   │            designated-app filter (defense in depth)      ▼
+ anything else ─────┘            ring buffer + counts per connector (via)     store (useSyncExternalStore)
+        ▲                                                                       │  live deck ── reduceDeck(action, model)
+        └── GET /api/sensor/config ◀─ designated apps, bundle ids, sites        │  demo deck ── same reducer, virtual clock
+            (filter AT the sensor)                                              │  model, history ── localStorage only
+ sensors/*/manifest.json ──────▶ GET /api/connectors ──────────────────────▶  /connect: catalog, setup, live status
+                                 POST /api/system-two  ◀── opt-in, on demand: aggregates + your declared words
+                                   one provider, chosen by you:                 (never events); template on any failure
+                                   Anthropic SDK · OpenAI-compatible HTTP · your subscription's own CLI
 ```
 
 ## The engine (`src/lib/focus/`)
@@ -58,13 +60,56 @@ replayable and unit-tested.
 
 ## The bridge (`src/lib/bridge/`, `src/app/api/sensor/`)
 
-`intake.ts` parses sensor payloads: four fields, opaque `source` ids, bounded
-timestamps, at most 100 events a request. `trust.ts` answers on loopback only,
+`intake.ts` parses sensor payloads: five fields, opaque `source` ids, a
+well-formed `via` (the connector's id), bounded timestamps, at most 100 events
+a request. `trust.ts` answers on loopback only,
 refuses cross-site browser requests (CSRF, DNS rebinding), requires JSON for
 writes, and — once `FOCUSDECK_SENSOR_TOKEN` is set — requires the token from
 every client. `store.ts` is a 1,000-event ring buffer on `globalThis`; until
-the app has PUT its designated apps, it drops everything. Route handlers read
-request data first, so Next.js never prerenders them.
+the app has PUT its designated apps, it drops everything. It also counts, per
+connector, what was accepted, dropped and rejected (with the last rejection's
+reason), and holds the site lists the browser connector matches against —
+handed out for designated categories only. Route handlers read request data
+first, so Next.js never prerenders them.
+
+App ids are open: nine are built in (`apps.ts`), and a connector's manifest
+may introduce more (`codex`, `github`, …). What gates an app is designation,
+never membership in a list.
+
+## Connectors (`src/lib/connectors/`, `/api/connectors`, `/connect`)
+
+A connector is a folder with a `manifest.json` (`sensors/*/`, plus any folders
+in `FOCUSDECK_CONNECTORS_DIR`). `manifest.ts` validates one strictly: its
+privacy section may only list fields the bridge accepts, emitted apps must be
+built in or introduced by the manifest, and docs paths stay inside the folder.
+`catalog.ts` loads them (re-reading every few seconds), registers the apps they
+introduce, and marks FocusDeck's own as verified. The route fills
+`{{FOCUSDECK_DIR}}` / `{{FOCUSDECK_URL}}` placeholders (JSON-escaped inside
+JSON) and attaches each connector's live counts. The `/connect` page lists
+them, and Add/Remove only edit your model: designating the apps a connector
+reports, and on removal undesignating the apps only it introduced. FocusDeck
+never installs, downloads or runs anything from a manifest.
+
+## System Two providers (`src/lib/systemTwo/`)
+
+`tasks.ts` owns the prompts, the JSON Schema for proposals and the output
+checks, so every provider is held to the same contract; a provider is just a
+`Generate` function.
+
+- `claude.ts` — the Anthropic API through the official SDK, with refusal
+  fallback.
+- `openaiCompatible.ts` — OpenAI, Gemini's compatibility endpoint, OpenRouter,
+  Ollama, LM Studio, or any compatible endpoint, over plain fetch. It asks for
+  `json_schema` output and retries with the schema in the prompt when a server
+  refuses it.
+- `cli.ts` — your subscription through its own CLI (`claude -p`, `codex exec`,
+  `gemini -p`). Each run is started without a shell, in a fresh empty folder,
+  with the prompt on stdin and flags that load no tools, MCP servers, hooks,
+  plugins or project files. API keys are stripped from its environment so it
+  uses your sign-in, and `FOCUSDECK_INTERNAL=1` keeps connectors from reporting
+  FocusDeck's own run.
+- `providers.ts` — reports which providers are set up without spending a token,
+  and builds the generator for the one you chose.
 
 ## The browser (`src/lib/client/`, `src/components/`)
 
@@ -89,6 +134,11 @@ request data first, so Next.js never prerenders them.
   and starts a cool-off; one offer at a time; proactive offers are capped.
 - An app that isn't designated is invisible end to end: sensor, bridge, deck.
 - Content cannot enter: the intake schema has no field for it, and System
-  Two's payloads are rebuilt server-side from an allow-list.
+  Two's payloads are rebuilt server-side from an allow-list — whichever
+  provider runs them.
+- A connector manifest cannot promise a field the bridge would reject, and
+  every manifest in `sensors/` is validated on each test run.
+- Connectors stay quiet for FocusDeck's own AI runs (`FOCUSDECK_INTERNAL=1`),
+  and those runs see no API keys and get no tools.
 - Simulated time always sums to the day; lost time can't exceed it.
 - Cumulative evidence never decreases; a dismissal is never a miss.
