@@ -1,0 +1,85 @@
+{
+  "id": "github",
+  "name": "GitHub",
+  "publisher": "FocusDeck",
+  "version": "0.1.0",
+  "category": "tasks",
+  "summary": "Turns your GitHub notifications into FocusDeck signals: review requests, finished CI and agent runs, and everything else.",
+  "description": "A small poller reads your GitHub notifications once a minute through your own GitHub CLI login. A pull request review or deployment approval waiting on you opens a loop. A finished workflow run or Copilot cloud agent session counts as an agent finishing. Every other new notification is a notification. Each event carries only its kind and an opaque hash of the notification thread; titles, repositories, people and URLs never leave your machine.",
+  "status": "ready",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "emits": [
+    {
+      "kind": "agent-needs-input",
+      "app": "github",
+      "when": "Someone requests your review on a pull request, or your approval for a deployment"
+    },
+    {
+      "kind": "agent-finished",
+      "app": "github",
+      "when": "A workflow run you triggered completes, or a Copilot cloud agent session finishes"
+    },
+    {
+      "kind": "notification",
+      "app": "github",
+      "when": "Any other new GitHub notification"
+    }
+  ],
+  "apps": [
+    {
+      "id": "github",
+      "label": "GitHub",
+      "group": "tasks"
+    }
+  ],
+  "privacy": {
+    "sends": [
+      "kind",
+      "app",
+      "source",
+      "via"
+    ],
+    "neverSends": [
+      "Notification titles",
+      "Repository and owner names",
+      "URLs, including API URLs",
+      "Who did what: authors, commenters and reviewers",
+      "The raw thread id"
+    ]
+  },
+  "requirements": [
+    "Node 18+",
+    "GitHub CLI (gh), logged in"
+  ],
+  "setup": [
+    {
+      "title": "Log in to the GitHub CLI",
+      "body": "The poller reads your notifications through gh, as you. gh's own login includes the repo scope the notifications API needs; fine-grained personal access tokens can't read notifications.",
+      "code": {
+        "language": "bash",
+        "content": "gh auth login\ngh auth status"
+      }
+    },
+    {
+      "title": "Start the poller",
+      "body": "It polls once a minute until you stop it with Ctrl-C. Its first poll only remembers the notifications already there, so your backlog isn't replayed. If FocusDeck has a sensor token, set FOCUSDECK_SENSOR_TOKEN as well. To keep it running in the background, see the docs for systemd and launchd examples.",
+      "code": {
+        "language": "bash",
+        "content": "FOCUSDECK_URL=\"{{FOCUSDECK_URL}}\" node \"{{FOCUSDECK_DIR}}/sensors/github/focusdeck-github.mjs\""
+      }
+    },
+    {
+      "title": "Designate GitHub in FocusDeck",
+      "body": "Until GitHub is designated, the bridge drops its events."
+    }
+  ],
+  "test": {
+    "command": "FOCUSDECK_URL=\"{{FOCUSDECK_URL}}\" FOCUSDECK_DEBUG=1 node \"{{FOCUSDECK_DIR}}/sensors/github/focusdeck-github.mjs\" --test",
+    "expect": "The terminal prints \"focusdeck-github: sent\" with status 200, and FocusDeck shows a GitHub notification once GitHub is designated. It doesn't call gh."
+  },
+  "docs": "sensors/github/README.md"
+}

@@ -1,0 +1,26 @@
+# FocusDeck's GitHub sensor as a systemd user service. An untested example.
+#
+# Copy to ~/.config/systemd/user/focusdeck-github.service, replace the
+# /ABSOLUTE/PATH/TO values (`which node`, `which gh`), then:
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now focusdeck-github
+#   journalctl --user -u focusdeck-github   # only says anything with FOCUSDECK_DEBUG=1
+#
+# A user service gets a minimal PATH, so put the directory holding gh on it.
+# If gh keeps its token in the system keyring, the service needs your login
+# session's keyring; `gh auth status` from a service context tells you.
+
+[Unit]
+Description=FocusDeck GitHub sensor (polls gh api notifications)
+
+[Service]
+ExecStart=/ABSOLUTE/PATH/TO/node /ABSOLUTE/PATH/TO/FocusDeck/sensors/github/focusdeck-github.mjs
+Environment=PATH=/ABSOLUTE/PATH/TO/gh-directory:/usr/local/bin:/usr/bin:/bin
+Environment=FOCUSDECK_URL=http://127.0.0.1:3000
+# Environment=FOCUSDECK_SENSOR_TOKEN=...
+# The poller exits 0 even when something goes wrong, so restart it either way.
+Restart=always
+RestartSec=60
+
+[Install]
+WantedBy=default.target

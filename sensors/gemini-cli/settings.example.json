@@ -1,0 +1,43 @@
+{
+  "hooks": {
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "name": "focusdeck",
+            "type": "command",
+            "command": "node \"/ABSOLUTE/PATH/TO/FocusDeck/sensors/gemini-cli/focusdeck-hook.mjs\"",
+            "description": "Tells FocusDeck a tool call is waiting for your confirmation",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "AfterAgent": [
+      {
+        "hooks": [
+          {
+            "name": "focusdeck",
+            "type": "command",
+            "command": "node \"/ABSOLUTE/PATH/TO/FocusDeck/sensors/gemini-cli/focusdeck-hook.mjs\"",
+            "description": "Tells FocusDeck the turn has finished",
+            "timeout": 5000
+          }
+        ]
+      }
+    ],
+    "BeforeAgent": [
+      {
+        "hooks": [
+          {
+            "name": "focusdeck",
+            "type": "command",
+            "command": "node \"/ABSOLUTE/PATH/TO/FocusDeck/sensors/gemini-cli/focusdeck-hook.mjs\"",
+            "description": "Tells FocusDeck you sent a prompt",
+            "timeout": 5000
+          }
+        ]
+      }
+    ]
+  }
+}

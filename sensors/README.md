@@ -19,6 +19,10 @@ designated is never sent (ASSESSMENT.md §4.7). And content is never collected
 | --- | --- | --- |
 | [`claude-code/`](claude-code/README.md) | `agent-needs-input`, `agent-finished` and `agent-resumed`, from Claude Code hooks | Tested. Unit tests, plus end-to-end runs against the real bridge |
 | [`browser/`](browser/README.md) | `app-switch` for the browser categories (X, docs), matched by hostname inside the browser; only the category is sent | Tested in headless Chromium, against a stand-in bridge and once against the real one. Not yet run in a windowed browser, or on macOS or Windows |
+| [`codex/`](codex/README.md) | `agent-needs-input` (approval), `agent-finished` and `agent-resumed`, from Codex CLI hooks; finished turns only through the older `notify` program | **Spike.** Checked against Codex's source (its docs site was unreachable). Unit and script tests; not run inside Codex |
+| [`gemini-cli/`](gemini-cli/README.md) | `agent-needs-input` (tool confirmation), `agent-finished` and `agent-resumed`, from Gemini CLI hooks | Ready per Gemini CLI's docs. Unit and script tests; not run inside Gemini CLI |
+| [`cursor/`](cursor/README.md) | `agent-finished` and `agent-resumed` for `cursor-agent`, from Cursor hooks. Cursor has no approval hook, so no `agent-needs-input` | **Spike.** Checked against Cursor's own example repos (its docs site was unreachable). Not run inside Cursor |
+| [`github/`](github/README.md) | Review and deployment approval requests → `agent-needs-input`; CI → `agent-finished`; other notifications → `notification`. Polls your logged-in `gh` | Tested against a stub `gh`. Never reached the real API from here |
 | [`macos/`](macos/README.md) | `app-switch` for designated desktop apps | **Untested spike.** Written without a Mac or a Swift toolchain |
 
 ## The bridge contract

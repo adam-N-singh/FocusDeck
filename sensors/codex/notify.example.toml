@@ -1,0 +1,9 @@
+# FocusDeck's Codex CLI sensor as the legacy `notify` program. It reports
+# agent-finished only, but needs no trust step and works on Codex versions
+# without hooks. Use this OR the Stop hook in hooks.example.toml, never both,
+# or every turn is reported twice.
+#
+# `notify` is a top-level key: put it above the first [table] in
+# ~/.codex/config.toml, or TOML reads it as part of that table. Replace
+# /ABSOLUTE/PATH/TO/FocusDeck. Single quotes keep Windows backslashes literal.
+notify = ['node', '/ABSOLUTE/PATH/TO/FocusDeck/sensors/codex/focusdeck-hook.mjs']

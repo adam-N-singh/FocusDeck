@@ -76,6 +76,11 @@ shows you commands; it never installs or runs anything itself.
 - **Browser sites** — a Chromium extension that tells X from docs by matching
   the tab's hostname against your site lists *inside the browser*. Only the
   category is sent.
+- **Codex CLI, Gemini CLI, Cursor** — hooks that report when an agent waits on
+  your approval (Codex, Gemini CLI), finishes, or picks up again.
+- **GitHub** — a small poller over your logged-in `gh`. Review requests become
+  open loops, CI runs finishing become "finished", and nothing about a repo,
+  title or URL leaves your machine.
 - **macOS app switches** — an untested Stage 0 spike.
 - **Your own** — a folder with a `manifest.json`, in `sensors/` or wherever
   `FOCUSDECK_CONNECTORS_DIR` points: [`sensors/CONTRIBUTING.md`](./sensors/CONTRIBUTING.md).

@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "hooks": {
+    "stop": [
+      {
+        "command": "node \"/ABSOLUTE/PATH/TO/FocusDeck/sensors/cursor/focusdeck-hook.mjs\" stop",
+        "timeout": 5,
+        "failClosed": false
+      }
+    ],
+    "beforeSubmitPrompt": [
+      {
+        "command": "node \"/ABSOLUTE/PATH/TO/FocusDeck/sensors/cursor/focusdeck-hook.mjs\" beforeSubmitPrompt",
+        "matcher": "UserPromptSubmit",
+        "timeout": 5,
+        "failClosed": false
+      }
+    ]
+  }
+}

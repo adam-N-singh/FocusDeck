@@ -1,0 +1,26 @@
+# FocusDeck's Codex CLI sensor as lifecycle hooks (Codex CLI 0.148+).
+# Append to ~/.codex/config.toml and replace /ABSOLUTE/PATH/TO/FocusDeck.
+# Then start `codex` and trust the hooks when it shows "Hooks need review":
+# untrusted hooks never run. Codex 0.124 to 0.147 skip `async` hooks, so
+# delete the three `async = true` lines there.
+
+[[hooks.PermissionRequest]]
+[[hooks.PermissionRequest.hooks]]
+type = "command"
+command = 'node "/ABSOLUTE/PATH/TO/FocusDeck/sensors/codex/focusdeck-hook.mjs"'
+async = true
+timeout = 5
+
+[[hooks.Stop]]
+[[hooks.Stop.hooks]]
+type = "command"
+command = 'node "/ABSOLUTE/PATH/TO/FocusDeck/sensors/codex/focusdeck-hook.mjs"'
+async = true
+timeout = 5
+
+[[hooks.UserPromptSubmit]]
+[[hooks.UserPromptSubmit.hooks]]
+type = "command"
+command = 'node "/ABSOLUTE/PATH/TO/FocusDeck/sensors/codex/focusdeck-hook.mjs"'
+async = true
+timeout = 5

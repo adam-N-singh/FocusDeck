@@ -63,7 +63,7 @@ connector marketplace to hook it up to the apps it watches.
 |---|---|---|
 | Use my AI subscriptions | System Two runs on Claude Code (Claude plans), Codex CLI (ChatGPT plans) or Gemini CLI (Google account), each run unmodified and signed in as you; plus API keys (Anthropic, OpenAI, Gemini, OpenRouter, any compatible endpoint) and local models (Ollama, LM Studio). Picker and Test on **Connect** | Done; adapters tested with stubbed processes and HTTP; not run against live models (below) |
 | A connector marketplace | `/connect`: search, categories, verified/community, what each connector sends and never sends, setup filled in for this machine, live status per connector, Add/Remove; manifests in `sensors/*/manifest.json` or `FOCUSDECK_CONNECTORS_DIR` | Done; verified in Chromium end to end with the Claude Code connector |
-| Connect the apps it monitors | Connectors for Claude Code, browser sites (new) and macOS, with manifests; all are listed in `sensors/README.md` with their status | See each connector's status |
+| Connect the apps it monitors | Connectors for Claude Code, browser sites, Codex CLI, Gemini CLI, Cursor, GitHub and macOS, each with a manifest | Claude Code and the browser verified end to end; the rest are tested but not run inside their hosts (below) |
 
 ### AI providers and their terms
 
@@ -203,6 +203,22 @@ These are documented rather than solved, as asked; each says what it needs.
 5. **The Claude Code hook was not run inside a live Claude Code session.** It
    was tested against the documented hook input shapes and end to end against
    the bridge. Background sessions in agent view are undocumented.
+   **The Codex, Gemini CLI and Cursor connectors weren't run inside their hosts
+   either.** Installing Codex and Gemini CLI was blocked here, and Cursor is a
+   desktop app. Each is tested against its documented (or, where the docs site
+   was unreachable, its source's) hook inputs, and end to end as a script.
+   - Codex: needs 0.148+ for asynchronous hooks.
+   - Cursor: has no approval hook, so it reports no "needs your answer".
+   - Gemini CLI: waits for each hook, at most about 1.5 s when FocusDeck
+     doesn't answer.
+   **The GitHub poller never reached the real API**, because this environment's
+   proxy blocks `/notifications`.
+   - GitHub documents these endpoints for classic tokens; whether `gh`'s login
+     token is accepted is unverified.
+   - Its systemd and launchd examples are untested.
+   - It also maps two reasons beyond the brief: deployment approvals (needs
+     you) and finished Copilot agent sessions (finished).
+   - Its first run reports nothing, so a backlog isn't replayed.
 6. **The Hymah source documents are not in this repository.** Everything Hymah
    here follows ASSESSMENT.md's summaries. Privacy classes D and E are named
    there; classes A–C are not, so the What-it-sees screen uses its own labels

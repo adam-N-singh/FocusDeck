@@ -1,0 +1,69 @@
+{
+  "id": "cursor",
+  "name": "Cursor",
+  "publisher": "FocusDeck",
+  "version": "0.1.0",
+  "category": "agents",
+  "summary": "Tells FocusDeck when a Cursor agent run finishes and when you send it a new prompt.",
+  "description": "Cursor agent hooks report two moments: an agent run has stopped on its own, by completing or failing, and you have sent a new prompt. Each event carries only its kind and an opaque hash of the conversation id; prompts, attachments, workspace folders, your email address and the model never leave your machine. Cursor has no hook for an agent waiting on your approval, so this connector cannot report that.",
+  "status": "spike",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "emits": [
+    {
+      "kind": "agent-finished",
+      "app": "cursor-agent",
+      "when": "A Cursor agent run stops on its own: it completed, or it hit an error"
+    },
+    {
+      "kind": "agent-resumed",
+      "app": "cursor-agent",
+      "when": "You send the agent a prompt in that conversation"
+    }
+  ],
+  "privacy": {
+    "sends": [
+      "kind",
+      "app",
+      "source",
+      "via"
+    ],
+    "neverSends": [
+      "Your prompts and their attachments",
+      "The agent's replies",
+      "Workspace folders, file paths and the transcript path",
+      "Your email address and the model",
+      "The raw conversation id"
+    ]
+  },
+  "requirements": [
+    "Node 18+",
+    "Cursor 1.7+ (agent hooks)"
+  ],
+  "setup": [
+    {
+      "title": "Add the hooks to ~/.cursor/hooks.json",
+      "body": "Create the file with this content, or merge the two entries into the hooks object of the one you have, keeping your own hooks. If node isn't on the PATH Cursor starts hooks with (nvm and the like), replace node with the absolute path from `which node`.",
+      "code": {
+        "language": "json",
+        "content": "{\n  \"version\": 1,\n  \"hooks\": {\n    \"stop\": [\n      {\n        \"command\": \"node \\\"{{FOCUSDECK_DIR}}/sensors/cursor/focusdeck-hook.mjs\\\" stop\",\n        \"timeout\": 5,\n        \"failClosed\": false\n      }\n    ],\n    \"beforeSubmitPrompt\": [\n      {\n        \"command\": \"node \\\"{{FOCUSDECK_DIR}}/sensors/cursor/focusdeck-hook.mjs\\\" beforeSubmitPrompt\",\n        \"matcher\": \"UserPromptSubmit\",\n        \"timeout\": 5,\n        \"failClosed\": false\n      }\n    ]\n  }\n}"
+      }
+    },
+    {
+      "title": "Restart Cursor",
+      "body": "Restart Cursor so it loads the hooks. They apply to the agent in every project."
+    },
+    {
+      "title": "Designate the Cursor agent in FocusDeck",
+      "body": "Until the Cursor agent is designated, the bridge drops its events."
+    }
+  ],
+  "test": {
+    "command": "echo '{\"hook_event_name\":\"stop\",\"conversation_id\":\"focusdeck-test\",\"status\":\"completed\"}' | FOCUSDECK_URL=\"{{FOCUSDECK_URL}}\" FOCUSDECK_DEBUG=1 node \"{{FOCUSDECK_DIR}}/sensors/cursor/focusdeck-hook.mjs\" stop",
+    "expect": "The terminal prints \"focusdeck-cursor: sent\" with status 200, and FocusDeck shows the Cursor agent finishing (session 7890f1) once it is designated."
+  },
+  "docs": "sensors/cursor/README.md"
+}

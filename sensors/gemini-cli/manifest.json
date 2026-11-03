@@ -1,0 +1,81 @@
+{
+  "id": "gemini-cli",
+  "name": "Google Gemini CLI",
+  "publisher": "FocusDeck",
+  "version": "0.1.0",
+  "category": "agents",
+  "summary": "Tells FocusDeck when a Gemini CLI session needs your confirmation, finishes a turn, or resumes.",
+  "description": "Gemini CLI hooks report three moments: a tool call is waiting for your confirmation, a turn has ended, and you have sent a new prompt. Each event carries only its kind and an opaque hash of the session id; prompts, replies, tool calls, paths and the working directory never leave your machine.",
+  "status": "ready",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "emits": [
+    {
+      "kind": "agent-needs-input",
+      "app": "gemini-cli",
+      "when": "Gemini CLI asks you to confirm a tool call"
+    },
+    {
+      "kind": "agent-finished",
+      "app": "gemini-cli",
+      "when": "A Gemini CLI turn ends"
+    },
+    {
+      "kind": "agent-resumed",
+      "app": "gemini-cli",
+      "when": "You send a prompt in that session"
+    }
+  ],
+  "apps": [
+    {
+      "id": "gemini-cli",
+      "label": "Gemini CLI",
+      "group": "agents"
+    }
+  ],
+  "privacy": {
+    "sends": [
+      "kind",
+      "app",
+      "source",
+      "via"
+    ],
+    "neverSends": [
+      "Your prompts",
+      "Gemini's replies",
+      "The tool call waiting for confirmation, and its arguments",
+      "File paths, the transcript path and the working directory",
+      "The raw session id"
+    ]
+  },
+  "requirements": [
+    "Node 18+",
+    "Gemini CLI 0.26+"
+  ],
+  "setup": [
+    {
+      "title": "Add the hooks to ~/.gemini/settings.json",
+      "body": "Merge this hooks block into the file, and create the file if you don't have one. Keep any hooks you already have for these events alongside these. If node isn't on the PATH Gemini CLI starts with (nvm and the like), replace node with the absolute path from `which node`.",
+      "code": {
+        "language": "json",
+        "content": "{\n  \"hooks\": {\n    \"Notification\": [\n      {\n        \"hooks\": [\n          {\n            \"name\": \"focusdeck\",\n            \"type\": \"command\",\n            \"command\": \"node \\\"{{FOCUSDECK_DIR}}/sensors/gemini-cli/focusdeck-hook.mjs\\\"\",\n            \"description\": \"Tells FocusDeck a tool call is waiting for your confirmation\",\n            \"timeout\": 5000\n          }\n        ]\n      }\n    ],\n    \"AfterAgent\": [\n      {\n        \"hooks\": [\n          {\n            \"name\": \"focusdeck\",\n            \"type\": \"command\",\n            \"command\": \"node \\\"{{FOCUSDECK_DIR}}/sensors/gemini-cli/focusdeck-hook.mjs\\\"\",\n            \"description\": \"Tells FocusDeck the turn has finished\",\n            \"timeout\": 5000\n          }\n        ]\n      }\n    ],\n    \"BeforeAgent\": [\n      {\n        \"hooks\": [\n          {\n            \"name\": \"focusdeck\",\n            \"type\": \"command\",\n            \"command\": \"node \\\"{{FOCUSDECK_DIR}}/sensors/gemini-cli/focusdeck-hook.mjs\\\"\",\n            \"description\": \"Tells FocusDeck you sent a prompt\",\n            \"timeout\": 5000\n          }\n        ]\n      }\n    ]\n  }\n}"
+      }
+    },
+    {
+      "title": "Restart Gemini CLI",
+      "body": "Start a new gemini session. /hooks panel should list three hooks named focusdeck. Gemini CLI runs hooks only in folders you have trusted, so accept its trust prompt where you work."
+    },
+    {
+      "title": "Designate Gemini CLI in FocusDeck",
+      "body": "Until Gemini CLI is designated, the bridge drops its events."
+    }
+  ],
+  "test": {
+    "command": "echo '{\"hook_event_name\":\"AfterAgent\",\"session_id\":\"focusdeck-test\"}' | FOCUSDECK_URL=\"{{FOCUSDECK_URL}}\" FOCUSDECK_DEBUG=1 node \"{{FOCUSDECK_DIR}}/sensors/gemini-cli/focusdeck-hook.mjs\"",
+    "expect": "The terminal prints \"focusdeck-gemini-cli: sent\" with status 200, and FocusDeck shows Gemini CLI finishing (session 7890f1) once Gemini CLI is designated."
+  },
+  "docs": "sensors/gemini-cli/README.md"
+}

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  FocusDeck's GitHub sensor as a launchd agent. An untested example.
+
+  Copy to ~/Library/LaunchAgents/com.focusdeck.github.plist, replace the
+  /ABSOLUTE/PATH/TO values (`which node`), then:
+    launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.focusdeck.github.plist
+  and to stop it:
+    launchctl bootout gui/$(id -u)/com.focusdeck.github
+
+  launchd gives agents a minimal PATH, so PATH below must include the
+  directory holding gh (Homebrew: /opt/homebrew/bin on Apple silicon,
+  /usr/local/bin on Intel).
+-->
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.focusdeck.github</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/ABSOLUTE/PATH/TO/node</string>
+    <string>/ABSOLUTE/PATH/TO/FocusDeck/sensors/github/focusdeck-github.mjs</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+    <key>FOCUSDECK_URL</key>
+    <string>http://127.0.0.1:3000</string>
+  </dict>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+</dict>
+</plist>
