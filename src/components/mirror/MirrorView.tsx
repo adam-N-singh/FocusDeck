@@ -88,7 +88,7 @@ export function MirrorView() {
         </div>
       </Panel>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Panel kicker="The headline target" title="How long agents waited">
           <WaitBars weeks={mirror.weeks} />
           <p className="mt-3 text-xs text-zinc-500">Mean minutes from an agent blocking to you answering it, per week.</p>

@@ -60,7 +60,7 @@ export function ThreeQuestions() {
         <Slider label="Review moment every" value={cadence} min={15} max={180} step={15} format={(v) => `${v} min`} onChange={setCadence} />
         <Slider label="A typical agent run" value={runMinutes} min={10} max={90} step={5} format={(v) => `${v} min`} onChange={setRunMinutes} />
       </div>
-      <div className="mt-4 grid gap-4 lg:grid-cols-3">
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
         {answers.map((a) => {
           const v = VERDICT[a.verdict];
           return (
