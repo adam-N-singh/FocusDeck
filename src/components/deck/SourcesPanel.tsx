@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
-import { AGENT_APPS, appLabel } from "@/lib/focus/apps";
+import { appLabel, isAgentApp } from "@/lib/focus/apps";
 import type { AppId, EventKind } from "@/lib/focus/types";
-import { useDeck } from "@/lib/client/hooks";
+import { useConnectorCatalog } from "@/lib/client/connectors";
+import { ago, useDeck, useNow } from "@/lib/client/hooks";
 import { KEYS, readJson, writeJson } from "@/lib/client/persist";
 import { store } from "@/lib/client/store";
 import { Badge, Button, Panel, Toggle, inputClass } from "@/components/ui/primitives";
@@ -40,6 +42,23 @@ function TokenField() {
   );
 }
 
+/** Which connectors have been heard from since the server started, newest first. */
+function HeardFrom() {
+  const { state } = useDeck();
+  const catalog = useConnectorCatalog();
+  const now = useNow();
+  const heard = Object.entries(state.bridge.stats?.byConnector ?? {})
+    .flatMap(([id, s]) => (s.lastEventAt ? [{ id, at: s.lastEventAt }] : []))
+    .sort((a, b) => b.at - a.at);
+  if (heard.length === 0) return null;
+  const name = (id: string) => catalog.connectors.find((c) => c.id === id)?.name ?? id;
+  return (
+    <p className="text-xs leading-5 text-zinc-400">
+      Heard from: {heard.map((h) => `${name(h.id)} (${now ? ago(h.at, now) : "recently"})`).join(" · ")}
+    </p>
+  );
+}
+
 /** Where events come from: real sensors through the bridge, a replayed demo day, or a test tap. */
 export function SourcesPanel() {
   const { state, isDemo } = useDeck();
@@ -52,7 +71,7 @@ export function SourcesPanel() {
 
   return (
     <Panel title="Sources" kicker="How FocusDeck notices">
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="space-y-2 rounded-xl bg-zinc-950/60 p-4">
           <div className="flex items-center justify-between gap-2">
             <h3 className="text-sm font-medium text-zinc-200">Sensor bridge</h3>
@@ -60,14 +79,17 @@ export function SourcesPanel() {
               {!bridge.enabled ? "off" : bridge.connected ? "connected" : "unreachable"}
             </Badge>
           </div>
-          <Toggle checked={bridge.enabled} onChange={(enabled) => store.setBridge({ enabled })} label="Listen for sensor events" description="Claude Code hooks and the macOS sensor post metadata-only events here." />
+          <Toggle checked={bridge.enabled} onChange={(enabled) => store.setBridge({ enabled })} label="Listen for sensor events" description="Connectors (Claude Code, your browser, your Mac…) post metadata-only events here." />
           {bridge.stats && (
             <p className="text-xs leading-5 text-zinc-500">
               Accepted {bridge.stats.accepted} · dropped {bridge.stats.dropped} (undesignated) · rejected {bridge.stats.rejected} (bad or content-bearing fields)
             </p>
           )}
+          <HeardFrom />
           {bridge.lastError && <p className="text-xs text-red-300">{bridge.lastError}</p>}
-          <p className="text-xs leading-5 text-zinc-500">Set up sensors from <code className="text-zinc-300">sensors/README.md</code>. Events land in your real day, even during a demo.</p>
+          <p className="text-xs leading-5 text-zinc-500">
+            Add connectors on <Link href="/connect" className="text-zinc-300 underline underline-offset-2">Connect</Link>. Events land in your real day, even during a demo.
+          </p>
           <TokenField />
         </div>
 
@@ -103,7 +125,7 @@ export function SourcesPanel() {
               ))}
             </div>
           )}
-          {model.designatedApps.some((a) => AGENT_APPS.includes(a)) && (
+          {model.designatedApps.some(isAgentApp) && (
             <Button size="sm" variant="ghost" onClick={() => store.dispatch({ type: "agent-resumed", at: store.now(), app: "claude-code" })}>
               The agent resumed (I replied)
             </Button>

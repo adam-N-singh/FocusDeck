@@ -1,7 +1,9 @@
-import { APP_IDS, isAppId } from "./apps";
+import { DEFAULT_PROVIDER, isProviderId, type ProviderId } from "../systemTwo/providerCatalog";
+import { APP_IDS, APP_ID_PATTERN, isAppId } from "./apps";
 import { BATCHABLE_WHENS, type ImplementationIntention, type IntentionWhen, type OfferTarget } from "./intentions";
 import { MODES, REVIEW_MODE_ID } from "./modes";
 import { DEMO_QUEUE, type QueueItem, type QueueItemKind } from "./offer";
+import { DEFAULT_SITES, normalizeSites, type SiteLists } from "./sites";
 import type { AppId, EventKind, Mode } from "./types";
 
 /**
@@ -44,6 +46,15 @@ export interface UserModel {
   systemOneEnabled: boolean;
   /** Off by default: when on, aggregates + your declared words go to an LLM off the hot path. */
   systemTwoEnabled: boolean;
+  /** Which AI runs System Two: an API key, a local model, or your own subscription's CLI. */
+  systemTwoProvider: ProviderId;
+  /**
+   * Hostnames per browser category. Your browser connector matches tabs
+   * against these locally and sends only the category (sites.ts).
+   */
+  sites: SiteLists;
+  /** Connectors you added from the marketplace. A record of your setup — designation is still the gate. */
+  connectors: string[];
   inferences: InferenceRecord[];
   questions: QuestionRecord[];
 }
@@ -80,6 +91,9 @@ export function createDemoModel(): UserModel {
     quietFirstBuildHour: false,
     systemOneEnabled: true,
     systemTwoEnabled: false,
+    systemTwoProvider: DEFAULT_PROVIDER,
+    sites: normalizeSites(DEFAULT_SITES),
+    connectors: [],
     inferences: [],
     questions: [],
   };
@@ -87,7 +101,33 @@ export function createDemoModel(): UserModel {
 
 /** A blank model for declaring your own: default modes, nothing designated, nothing queued. */
 export function createBlankModel(): UserModel {
-  return { ...createDemoModel(), designatedApps: [], trapApps: [], intentions: [], queue: [] };
+  return { ...createDemoModel(), designatedApps: [], trapApps: [], intentions: [], queue: [], connectors: [] };
+}
+
+/** Designate an app or stop. Not designated means not seen: it can't be a trap, and no mode can claim it. */
+export function setDesignated(model: UserModel, id: AppId, on: boolean): UserModel {
+  if (on === model.designatedApps.includes(id)) return model;
+  return {
+    ...model,
+    designatedApps: on ? [...model.designatedApps, id] : model.designatedApps.filter((a) => a !== id),
+    trapApps: on ? model.trapApps : model.trapApps.filter((a) => a !== id),
+    modes: on ? model.modes : model.modes.map((mode) => ({ ...mode, allowedApps: mode.allowedApps.filter((a) => a !== id) })),
+  };
+}
+
+/** Add a marketplace connector: record it and designate the apps it reports (each can be undone in Declare). */
+export function connectConnector(model: UserModel, id: string, apps: AppId[]): UserModel {
+  const next = { ...model, connectors: model.connectors.includes(id) ? model.connectors : [...model.connectors, id] };
+  return apps.reduce((m, app) => setDesignated(m, app, true), next);
+}
+
+/**
+ * Remove a connector: forget it and stop noticing the apps only it introduced.
+ * Built-in apps stay as you set them; another connector (or you) may rely on them.
+ */
+export function disconnectConnector(model: UserModel, id: string, introduced: AppId[]): UserModel {
+  const next = { ...model, connectors: model.connectors.filter((c) => c !== id) };
+  return introduced.reduce((m, app) => setDesignated(m, app, false), next);
 }
 
 const EVENT_KINDS: EventKind[] = ["app-switch", "notification", "agent-needs-input", "agent-finished"];
@@ -188,6 +228,12 @@ export function normalizeModel(raw: unknown): UserModel | null {
     quietFirstBuildHour: raw.quietFirstBuildHour === true,
     systemOneEnabled: raw.systemOneEnabled !== false,
     systemTwoEnabled: raw.systemTwoEnabled === true,
+    systemTwoProvider: isProviderId(raw.systemTwoProvider) ? raw.systemTwoProvider : DEFAULT_PROVIDER,
+    // Models saved before site lists existed get the defaults; a list you emptied stays empty.
+    sites: raw.sites === undefined ? normalizeSites(DEFAULT_SITES) : normalizeSites(raw.sites, {}),
+    connectors: Array.isArray(raw.connectors)
+      ? [...new Set(raw.connectors.filter((c): c is string => typeof c === "string" && APP_ID_PATTERN.test(c)))]
+      : [],
     inferences: Array.isArray(raw.inferences)
       ? raw.inferences.filter(isObject).flatMap((r): InferenceRecord[] =>
           (r.status === "confirmed" || r.status === "rejected") && str(r.id)

@@ -53,7 +53,7 @@ Then switch between a few apps and look at what arrived:
 4. Consecutive activations of the same app id collapse into one event. Drops
    don't reset this, so a trip through an undesignated app
    (editor → browser → editor) doesn't show up as a telltale repeat.
-5. It POSTs `{"kind":"app-switch","app":"editor"}` as JSON, with the bearer
+5. It POSTs `{"kind":"app-switch","app":"editor","via":"macos"}` as JSON, with the bearer
    token if one is set, a 2 s timeout, and fire-and-forget delivery.
 
 ## What it collects

@@ -12,9 +12,11 @@ import { createHash } from "node:crypto";
  */
 
 export const APP = "claude-code";
+/** This connector's marketplace id, sent as `via` so FocusDeck can show its status. */
+export const VIA = "claude-code";
 
 /** @typedef {"agent-needs-input" | "agent-finished" | "agent-resumed"} AgentKind */
-/** @typedef {{ kind: AgentKind, app: "claude-code", source?: string }} AgentEvent */
+/** @typedef {{ kind: AgentKind, app: "claude-code", source?: string, via: "claude-code" }} AgentEvent */
 
 /** @type {Map<unknown, AgentKind>} A Map, so "__proto__" and friends map to nothing. */
 const KIND_BY_HOOK_EVENT = new Map([
@@ -53,5 +55,5 @@ export function toSensorEvent(input) {
   if (hookEvent === "Notification" && notificationType !== undefined && !NEEDS_INPUT_NOTIFICATIONS.includes(/** @type {string} */ (notificationType))) {
     return null;
   }
-  return typeof sessionId === "string" && sessionId !== "" ? { kind, app: APP, source: hashSession(sessionId) } : { kind, app: APP };
+  return typeof sessionId === "string" && sessionId !== "" ? { kind, app: APP, source: hashSession(sessionId), via: VIA } : { kind, app: APP, via: VIA };
 }

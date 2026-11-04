@@ -13,6 +13,7 @@ const NAV = [
   { href: "/", label: "Now" },
   { href: "/declare", label: "Declare" },
   { href: "/mirror", label: "Mirror" },
+  { href: "/connect", label: "Connect" },
   { href: "/sees", label: "What it sees" },
   { href: "/lab", label: "Lab" },
 ];

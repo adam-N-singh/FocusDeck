@@ -1,5 +1,6 @@
 import { getConfig, setConfig } from "@/lib/bridge/store";
 import { checkTrust, requestFacts, trustConfigFromEnv } from "@/lib/bridge/trust";
+import { loadConnectorCatalog } from "@/lib/connectors/catalog";
 
 /**
  * Which apps are designated. Sensors GET this to filter at the sensor; only
@@ -8,6 +9,8 @@ import { checkTrust, requestFacts, trustConfigFromEnv } from "@/lib/bridge/trust
 export async function GET(request: Request) {
   const trust = checkTrust(requestFacts(request), trustConfigFromEnv(), "read");
   if (!trust.ok) return Response.json({ error: trust.reason }, { status: trust.status });
+  // Connectors can introduce apps with native ids (bundle ids) of their own.
+  await loadConnectorCatalog();
   return Response.json({ ...getConfig(), tokenRequired: Boolean(trustConfigFromEnv().token) }, {
     headers: { "Cache-Control": "no-store" },
   });

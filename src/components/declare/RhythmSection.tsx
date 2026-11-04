@@ -1,7 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { UserModel } from "@/lib/focus/model";
+import { providerInfo } from "@/lib/systemTwo/providerCatalog";
 import { fetchSystemTwoStatus, type SystemTwoStatus } from "@/lib/client/systemTwoClient";
 import { Panel, Toggle } from "@/components/ui/primitives";
 
@@ -20,7 +22,7 @@ export function RhythmSection({ model, update }: { model: UserModel; update: (fn
 
   return (
     <Panel id="rhythm" title="Rhythm and decision layers" kicker="Explicit before inferred">
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <div className="space-y-3 rounded-xl bg-zinc-950/60 p-4">
           <label className="block text-sm text-zinc-200">
             Review moment every{" "}
@@ -56,12 +58,16 @@ export function RhythmSection({ model, update }: { model: UserModel; update: (fn
             checked={model.systemTwoEnabled}
             onChange={(systemTwoEnabled) => update((m) => ({ ...m, systemTwoEnabled }))}
             label="System Two for drafts and the weekly paragraph (Layer 3)"
-            description="Off the hot path, on demand only. Sends weekly aggregates and your declared words (modes, intentions) to Claude — never events, labels, or anything a sensor saw."
+            description="Off the hot path, on demand only. Sends weekly aggregates and your declared words (modes, intentions) to the AI you choose — never events, labels, or anything a sensor saw."
           />
-          <p className="text-xs text-zinc-500">
-            {status
-              ? `System Two model: ${status.model}. ${status.credentialsHint ? "Credentials found on the server." : "No API key in the server environment — FocusDeck uses its plain template unless an ant auth profile is available."}`
-              : "Checking whether System Two is configured…"}
+          <p className="text-xs leading-5 text-zinc-500">
+            Runs on: <span className="text-zinc-300">{providerInfo(model.systemTwoProvider).label}</span>
+            {(() => {
+              const chosen = status?.providers.find((p) => p.id === model.systemTwoProvider);
+              if (!status) return " · checking…";
+              return chosen?.ready ? " · set up." : " · not set up yet, so FocusDeck uses its plain template.";
+            })()}{" "}
+            <Link href="/connect#ai" className="text-zinc-300 underline underline-offset-2">Choose your AI</Link>
           </p>
         </div>
       </div>

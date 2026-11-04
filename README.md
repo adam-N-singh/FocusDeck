@@ -38,6 +38,11 @@ in [BUILD-NOTES.md](./BUILD-NOTES.md); how it fits together is in
   day, test moments); and the activity log of every decision and why.
 - **Declare** (`/declare`) — your inspectable model, plus the proposals inbox.
 - **Mirror** (`/mirror`) — the weekly honest mirror (demo history available).
+- **Connect** (`/connect`) — the connector marketplace (search, categories,
+  what each connector sends and never sends, setup steps filled in for your
+  machine, live status per connector) and the AI that runs System Two: your
+  Claude, ChatGPT or Google subscription through its official CLI, an API key,
+  or a local model.
 - **What it sees** (`/sees`) — everything FocusDeck collects, what it never
   collects, what it has inferred, where it lives; export or delete everything.
 - **Lab** (`/lab`) — the three questions PRODUCT.md says the stress test must
@@ -55,18 +60,51 @@ npm run build && npm start
 ```
 
 On first run, pick **Look around with the demo model** to explore (it
-designates every catalog app so the demo works), or **Declare my own**. To see
+designates every built-in app so the demo works), or **Declare my own**. To see
 the loop without any sensor, start **Replay the X-post day** under Sources.
 
-## Connect sensors
+## Connect your apps
+
+Open **Connect** (`/connect`). Every connector in `sensors/` appears there with
+what it sends, what it never sends, and setup steps already filled in with
+this machine's paths. Press **Add connector** to designate its apps, follow
+the steps, run its test command, and watch its status turn live. FocusDeck
+shows you commands; it never installs or runs anything itself.
 
 - **Claude Code** — a hook that reports when a session blocks on you, finishes,
-  or resumes, without reading any message content:
-  [`sensors/claude-code/README.md`](./sensors/claude-code/README.md).
-- **macOS app switches** — an untested Stage 0 spike:
-  [`sensors/macos/README.md`](./sensors/macos/README.md).
-- **Anything else** — `POST /api/sensor/events` with `{kind, app, source?, at?}`
-  and nothing more: [`sensors/README.md`](./sensors/README.md).
+  or resumes, without reading any message content.
+- **Browser sites** — a Chromium extension that tells X from docs by matching
+  the tab's hostname against your site lists *inside the browser*. Only the
+  category is sent.
+- **Codex CLI, Gemini CLI, Cursor** — hooks that report when an agent waits on
+  your approval (Codex, Gemini CLI), finishes, or picks up again.
+- **GitHub** — a small poller over your logged-in `gh`. Review requests become
+  open loops, CI runs finishing become "finished", and nothing about a repo,
+  title or URL leaves your machine.
+- **macOS app switches** — an untested Stage 0 spike.
+- **Your own** — a folder with a `manifest.json`, in `sensors/` or wherever
+  `FOCUSDECK_CONNECTORS_DIR` points: [`sensors/CONTRIBUTING.md`](./sensors/CONTRIBUTING.md).
+
+Every connector and its verification status is listed in
+[`sensors/README.md`](./sensors/README.md).
+
+## Connect your AI
+
+System Two (opt-in, on demand, never per event) can run on:
+
+- **Your subscriptions**, through each provider's own unmodified CLI, signed
+  in as you: Claude Code (Claude Pro/Max), Codex CLI (ChatGPT plans), Gemini
+  CLI (Google account). FocusDeck runs the CLI with no tools, in an empty
+  folder, with the prompt on stdin, and never touches your login. Read the
+  terms notes in [BUILD-NOTES.md](./BUILD-NOTES.md#ai-providers-and-their-terms)
+  first.
+- **API keys**: Anthropic (official SDK), OpenAI, Gemini, OpenRouter, or any
+  OpenAI-compatible endpoint. Keys stay in the server's environment.
+- **A model on this machine**: Ollama or LM Studio.
+
+Pick one under **Connect → AI for System Two**, and press **Test**. Whichever
+you choose receives the same sanitized payload — weekly aggregates and your
+own declared words, never anything a sensor observed.
 
 ## Configuration
 
@@ -74,8 +112,18 @@ the loop without any sensor, start **Replay the X-post day** under Sources.
 |---|---|---|
 | `FOCUSDECK_SENSOR_TOKEN` | unset | When set, every client — sensors and the FocusDeck page (enter it under Sources) — must send `Authorization: Bearer <token>` |
 | `FOCUSDECK_ALLOWED_HOSTS` | unset | Extra host names the bridge answers on (comma-separated). Loopback only otherwise. Set a token too |
-| `ANTHROPIC_API_KEY` | unset | Lets System Two (opt-in, off the hot path) write the weekly paragraph and draft proposals. Without it FocusDeck uses its plain template |
-| `FOCUSDECK_SYSTEM_TWO_MODEL` | `claude-opus-5-5` | The model System Two calls |
+| `FOCUSDECK_CONNECTORS_DIR` | unset | Extra folders of connectors (each `<folder>/manifest.json`), separated by `:` (`;` on Windows) |
+| `FOCUSDECK_DIR` | the working directory | The FocusDeck folder that setup steps refer to |
+| `ANTHROPIC_API_KEY` | unset | System Two on the Anthropic API (official SDK) |
+| `FOCUSDECK_SYSTEM_TWO_MODEL` | `claude-opus-5-5` | The model the Anthropic provider calls |
+| `OPENAI_API_KEY` · `FOCUSDECK_OPENAI_MODEL` | unset · `gpt-5.5` | System Two on OpenAI's API |
+| `GEMINI_API_KEY` · `FOCUSDECK_GEMINI_MODEL` | unset · `gemini-3.8-flash` | System Two on the Gemini API (OpenAI-compatible endpoint) |
+| `OPENROUTER_API_KEY` · `FOCUSDECK_OPENROUTER_MODEL` | unset · `openai/gpt-5.2` | System Two through OpenRouter |
+| `FOCUSDECK_OLLAMA_URL` · `FOCUSDECK_OLLAMA_MODEL` | `http://127.0.0.1:11434/v1` · `gpt-oss:20b` if installed, else your first model | A local model through Ollama |
+| `FOCUSDECK_LMSTUDIO_URL` · `FOCUSDECK_LMSTUDIO_MODEL` | `http://127.0.0.1:1234/v1` · your first model | A local model through LM Studio |
+| `FOCUSDECK_OPENAI_COMPAT_BASE_URL` · `_API_KEY` · `_MODEL` | unset | Any other OpenAI-compatible endpoint |
+| `FOCUSDECK_CLAUDE_CLI_MODEL` · `FOCUSDECK_CODEX_CLI_MODEL` · `FOCUSDECK_GEMINI_CLI_MODEL` | the CLI's own default | Model for each subscription CLI |
+| `FOCUSDECK_CLAUDE_CLI_PATH` · `FOCUSDECK_CODEX_CLI_PATH` · `FOCUSDECK_GEMINI_CLI_PATH` | found on `PATH` | Where each CLI lives, if not on `PATH` |
 
 ## Decision models
 
@@ -113,14 +161,21 @@ settles them.
   live loop in `deck/`; the stress test in `policyConfig.ts`, `policySim.ts`,
   `policyAnalysis.ts`, `stress.ts`, `demoHistory.ts`; the original event
   traces in `simulator.ts` and `scenarios.ts`
-- `src/lib/bridge/` — the sensor intake contract, trust rules, buffer
+- `src/lib/bridge/` — the sensor intake contract, trust rules, buffer, and
+  per-connector status
+- `src/lib/connectors/` — the connector manifest format and validator, and the
+  catalog loader behind the marketplace
 - `src/lib/systemTwo/` — System Two payloads (aggregates + declared words
-  only), proposals, and the Claude client
+  only), proposals, the task prompts (`tasks.ts`), and one adapter per kind of
+  provider: Anthropic SDK (`claude.ts`), OpenAI-compatible HTTP
+  (`openaiCompatible.ts`), subscription CLIs (`cli.ts`), chosen in
+  `providers.ts`
 - `src/lib/client/` — the browser store, persistence, demo replay, bridge
   polling, one-tab election
-- `src/components/` — `shell/`, `deck/` (Now), `declare/`, `mirror/`, `sees/`,
-  `lab/`, `charts/`, `ui/`, and the prototype's `focus/` panels
+- `src/components/` — `shell/`, `deck/` (Now), `declare/`, `connect/`,
+  `mirror/`, `sees/`, `lab/`, `charts/`, `ui/`, and the prototype's `focus/`
+  panels
 - `src/app/` — pages (composition only) and the API routes
-- `sensors/` — reference sensors
+- `sensors/` — the connectors, each with a `manifest.json`
 
 Each file stays under 300 lines, concerns separated.

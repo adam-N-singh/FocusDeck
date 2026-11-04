@@ -5,6 +5,7 @@ import { appLabel } from "@/lib/focus/apps";
 import { deriveHypotheses } from "@/lib/focus/learn";
 import { buildMirror } from "@/lib/focus/mirror";
 import { buildSynthesisPayload } from "@/lib/systemTwo/payload";
+import { providerInfo } from "@/lib/systemTwo/providerCatalog";
 import { useAppState } from "@/lib/client/hooks";
 import { storedBytes } from "@/lib/client/persist";
 import { store } from "@/lib/client/store";
@@ -16,11 +17,13 @@ const COLLECTED = [
   ["time", "09:42", "Minutes since midnight, for ageing and the rolling hour"],
   ["mode", "building", "Stamped by FocusDeck from your own dock, not observed"],
   ["source", "eaabdaa5d330d5d2", "Agents only: an opaque hash of a session id, so loops close per session"],
+  ["via", "claude-code", "Which connector reported it, so Connect can show whether each one is working"],
 ];
 
 const NEVER = [
   "Screen contents or screenshots", "Window titles", "URLs or page titles", "Keystrokes",
   "Notification or message text", "What you type into an agent", "File names, paths or transcripts", "Anything from an app you haven't designated",
+  "Which websites you visit — the browser connector matches your site lists inside the browser and sends only a category",
 ];
 
 function download(name: string, text: string) {
@@ -50,7 +53,7 @@ export function SeesView() {
 
   return (
     <div className="space-y-4">
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Panel kicker="Observed metadata" title="What it collects">
           <p className="text-sm text-zinc-400">
             From {model.designatedApps.length === 0 ? "no apps — nothing is designated yet" : model.designatedApps.map(appLabel).join(", ")}. Each moment is these fields, and only these:
@@ -72,7 +75,7 @@ export function SeesView() {
             {NEVER.map((n) => <li key={n}><span aria-hidden className="text-red-300">✕ </span>{n}</li>)}
           </ul>
           <p className="mt-3 text-xs leading-5 text-zinc-500">
-            Structural, not a promise: a sensor may send kind, app, source and time — nothing else. The bridge rejects any event
+            Structural, not a promise: a sensor may send kind, app, source, time and via — nothing else. The bridge rejects any event
             carrying another field{bridge.stats ? ` (${bridge.stats.rejected} rejected so far)` : ""}, and sensors drop undesignated apps before sending
             {bridge.stats ? ` (${bridge.stats.dropped} dropped at the bridge as a second check)` : ""}.
           </p>
@@ -106,13 +109,13 @@ export function SeesView() {
         </ul>
       </Panel>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Panel kicker="Local-first" title="Where it lives">
           <ul className="space-y-2 text-sm text-zinc-300">
             <li>This browser’s storage: about {Math.max(1, Math.round(storedBytes() / 1024))} KB — your model, today, and {history.length} archived day{history.length === 1 ? "" : "s"}.</li>
             <li>The sensor bridge on this machine: an in-memory buffer of recent events, gone when the server stops.</li>
             <li>
-              Nothing leaves this machine{model.systemTwoEnabled ? " except, on demand, what System Two receives:" : " — System Two is off."}{" "}
+              Nothing leaves this machine{model.systemTwoEnabled ? `, except on demand what System Two receives — through ${providerInfo(model.systemTwoProvider).label}, to ${providerInfo(model.systemTwoProvider).destination.replace(/\.$/, "").replace(/^./, (c) => c.toLowerCase())}:` : " — System Two is off."}{" "}
               {model.systemTwoEnabled && <button type="button" className="text-emerald-300 underline underline-offset-2" onClick={() => setShowPayload((v) => !v)}>{showPayload ? "hide it" : "show exactly what"}</button>}
             </li>
           </ul>

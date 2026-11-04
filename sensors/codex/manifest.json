@@ -1,0 +1,82 @@
+{
+  "id": "codex",
+  "name": "OpenAI Codex CLI",
+  "publisher": "FocusDeck",
+  "version": "0.1.0",
+  "category": "agents",
+  "summary": "Tells FocusDeck when a Codex CLI session needs your approval, finishes a turn, or resumes.",
+  "description": "Codex CLI lifecycle hooks report three moments: Codex is about to ask you to approve something, a turn has ended, and you have sent a new prompt. Each event carries only its kind and an opaque hash of the session id; prompts, replies, commands, paths and the working directory never leave your machine. On Codex versions without hooks, the same script works as the notify program, which reports finished turns only.",
+  "status": "spike",
+  "platforms": [
+    "macos",
+    "linux",
+    "windows"
+  ],
+  "emits": [
+    {
+      "kind": "agent-needs-input",
+      "app": "codex",
+      "when": "Codex is about to ask you to approve a command, a file edit or a tool call"
+    },
+    {
+      "kind": "agent-finished",
+      "app": "codex",
+      "when": "A Codex turn ends"
+    },
+    {
+      "kind": "agent-resumed",
+      "app": "codex",
+      "when": "You send a prompt in that session"
+    }
+  ],
+  "apps": [
+    {
+      "id": "codex",
+      "label": "Codex CLI",
+      "group": "agents"
+    }
+  ],
+  "privacy": {
+    "sends": [
+      "kind",
+      "app",
+      "source",
+      "via"
+    ],
+    "neverSends": [
+      "Your prompts",
+      "Codex's replies",
+      "The command, edit or tool call waiting for approval",
+      "File paths, the transcript path and the working directory",
+      "The model and permission mode",
+      "The raw session id"
+    ]
+  },
+  "requirements": [
+    "Node 18+",
+    "Codex CLI 0.148+"
+  ],
+  "setup": [
+    {
+      "title": "Add the hooks to ~/.codex/config.toml",
+      "body": "Append this to the end of the file. If node isn't on your login shell's PATH (nvm and the like), replace node with the absolute path from `which node`. On Codex 0.124 to 0.147, delete the async lines; on older versions, see the docs for the notify alternative.",
+      "code": {
+        "language": "toml",
+        "content": "[[hooks.PermissionRequest]]\n[[hooks.PermissionRequest.hooks]]\ntype = \"command\"\ncommand = 'node \"{{FOCUSDECK_DIR}}/sensors/codex/focusdeck-hook.mjs\"'\nasync = true\ntimeout = 5\n\n[[hooks.Stop]]\n[[hooks.Stop.hooks]]\ntype = \"command\"\ncommand = 'node \"{{FOCUSDECK_DIR}}/sensors/codex/focusdeck-hook.mjs\"'\nasync = true\ntimeout = 5\n\n[[hooks.UserPromptSubmit]]\n[[hooks.UserPromptSubmit.hooks]]\ntype = \"command\"\ncommand = 'node \"{{FOCUSDECK_DIR}}/sensors/codex/focusdeck-hook.mjs\"'\nasync = true\ntimeout = 5\n"
+      }
+    },
+    {
+      "title": "Trust the hooks",
+      "body": "Start codex. When it shows \"Hooks need review\", choose \"Trust all and continue\", or review each one with /hooks. Codex never runs an untrusted hook."
+    },
+    {
+      "title": "Designate Codex CLI in FocusDeck",
+      "body": "Until Codex CLI is designated, the bridge drops its events."
+    }
+  ],
+  "test": {
+    "command": "FOCUSDECK_URL=\"{{FOCUSDECK_URL}}\" FOCUSDECK_DEBUG=1 node \"{{FOCUSDECK_DIR}}/sensors/codex/focusdeck-hook.mjs\" '{\"type\":\"agent-turn-complete\",\"thread-id\":\"focusdeck-test\"}'",
+    "expect": "The terminal prints \"focusdeck-codex: sent\" with status 200, and FocusDeck shows Codex CLI finishing (session 7890f1) once Codex CLI is designated."
+  },
+  "docs": "sensors/codex/README.md"
+}

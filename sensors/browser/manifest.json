@@ -1,0 +1,49 @@
+{
+  "id": "browser-extension",
+  "name": "Browser sites",
+  "publisher": "FocusDeck",
+  "version": "0.1.0",
+  "category": "browser",
+  "summary": "Tells FocusDeck when you switch to one of your X or docs sites, by category only. URLs, titles and hostnames never leave the browser.",
+  "description": "A Manifest V3 extension for Chromium browsers: Chrome, Edge, Brave and Arc. Telling X from docs needs the tab's hostname, which FocusDeck must never receive. So the extension fetches your site lists from FocusDeck and matches the active tab's hostname against them inside the browser. Only the category is sent: browser-x or browser-docs. A switch to a site that isn't listed sends nothing. Consecutive switches within one category send one event, even with an unlisted site in between. It talks only to FocusDeck on this machine (127.0.0.1 or localhost). It needs the tabs permission to read the active tab's URL; Chrome describes that as \"Read your browsing history\". Firefox isn't supported yet.",
+  "status": "ready",
+  "platforms": ["macos", "linux", "windows"],
+  "emits": [
+    { "kind": "app-switch", "app": "browser-x", "when": "The active tab of your focused browser window switches to one of your X sites" },
+    { "kind": "app-switch", "app": "browser-docs", "when": "The active tab of your focused browser window switches to one of your docs sites" }
+  ],
+  "privacy": {
+    "sends": ["kind", "app", "via"],
+    "neverSends": [
+      "URLs, or any part of one: paths, queries, fragments",
+      "Hostnames: they are compared with your lists inside the browser, then discarded",
+      "Page titles, or anything on the page",
+      "Tab or window ids, or how many tabs you have open",
+      "Anything about a site that isn't on your lists, not even that you visited one",
+      "A repeat of the same category after an unlisted site, which would give that visit away",
+      "Timestamps: FocusDeck stamps the time when an event arrives"
+    ]
+  },
+  "requirements": ["A Chromium-based browser"],
+  "setup": [
+    {
+      "title": "Load the extension",
+      "body": "Open your browser's extensions page (chrome://extensions, or edge://extensions in Edge), turn on Developer mode, choose Load unpacked, and pick this folder.",
+      "code": { "language": "text", "content": "{{FOCUSDECK_DIR}}/sensors/browser/extension" }
+    },
+    {
+      "title": "Point it at FocusDeck",
+      "body": "Skip this if FocusDeck runs at http://127.0.0.1:3000 without a token. Otherwise open the extension's options (Details, then Extension options). Enter this address, and the token if your server sets FOCUSDECK_SENSOR_TOKEN. The options page then says what it is watching.",
+      "code": { "language": "text", "content": "{{FOCUSDECK_URL}}" }
+    },
+    {
+      "title": "Designate the browser categories and list your sites",
+      "body": "In FocusDeck, designate Browser — X and Browser — docs, and list the sites for each. The extension picks up changes within a minute, and reports designated categories only."
+    }
+  ],
+  "test": {
+    "command": "curl -s -H \"Authorization: Bearer $FOCUSDECK_SENSOR_TOKEN\" '{{FOCUSDECK_URL}}/api/sensor/events?after=0'",
+    "expect": "After you switch to one of your X sites: an app-switch event for browser-x, via browser-extension, with no URL, title or hostname anywhere in it."
+  },
+  "docs": "sensors/browser/README.md"
+}

@@ -24,7 +24,8 @@ export async function pushBridgeConfig(): Promise<void> {
     const res = await fetch("/api/sensor/config", {
       method: "PUT",
       headers: { "Content-Type": "application/json", ...authHeaders() },
-      body: JSON.stringify({ designatedApps: model.designatedApps }),
+      // Site lists go to your own browser connector, which matches tabs locally (sites.ts).
+      body: JSON.stringify({ designatedApps: model.designatedApps, sites: model.sites }),
     });
     store.setBridge({ configured: res.ok, lastError: res.ok ? null : `Config rejected (${res.status})` });
   } catch {
@@ -48,7 +49,7 @@ export async function pollBridge(): Promise<void> {
     for (const event of data.events) {
       const at = epochToMinute(event.at, now);
       if (event.kind === "agent-resumed") store.dispatchLive({ type: "agent-resumed", at, app: event.app, source: event.source });
-      else store.dispatchLive({ type: "event", at, input: { kind: event.kind, app: event.app, source: event.source, origin: "sensor" } });
+      else store.dispatchLive({ type: "event", at, input: { kind: event.kind, app: event.app, source: event.source, origin: "sensor", via: event.via } });
     }
     store.setBridge({ connected: true, configured: data.configured, lastSeq: data.lastSeq, stats: data.stats, lastError: null });
     if (!data.configured) await pushBridgeConfig();
