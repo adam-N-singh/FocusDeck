@@ -31,9 +31,9 @@ export function StressTable({ rows }: { rows: StressRow[] }) {
   const [lo, hi] = [Math.min(...values), Math.max(...values)];
 
   return (
-    <section aria-label="Stress test" className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
-      <h2 className="text-sm font-semibold tracking-wide text-zinc-200 uppercase">Stress test — parallel agents × review cadence, per 8-hour day</h2>
-      <p className="mt-1 text-sm text-zinc-500">
+    <section aria-label="Stress test" className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
+      <h2 className="text-base font-semibold text-ink">Stress test: agents at once against review cadence, per 8-hour day</h2>
+      <p className="mt-1 text-sm text-ink-3">
         Read across a row: does a deliberate review moment recover the cost of more agents — and what does it cost the agents?
       </p>
       <div className="mt-3 flex flex-wrap gap-2" role="radiogroup" aria-label="Metric">
@@ -44,7 +44,7 @@ export function StressTable({ rows }: { rows: StressRow[] }) {
             role="radio"
             aria-checked={metric === key}
             onClick={() => setMetric(key)}
-            className={`rounded-full px-3 py-1.5 text-xs ${metric === key ? "bg-zinc-100 font-medium text-zinc-950" : "bg-zinc-800 text-zinc-300 hover:bg-zinc-700"}`}
+            className={`rounded-full px-3 py-1.5 text-xs ${metric === key ? "bg-accent font-medium text-accent-ink" : "bg-ink/[0.06] text-ink hover:bg-sunk"}`}
           >
             {METRICS[key].label}
           </button>
@@ -53,7 +53,7 @@ export function StressTable({ rows }: { rows: StressRow[] }) {
       <div className="mt-3 overflow-x-auto">
         <table className="w-full min-w-[560px] border-separate border-spacing-0.5 text-left text-sm">
           <thead>
-            <tr className="text-xs text-zinc-500">
+            <tr className="text-xs text-ink-3">
               <th className="py-2 pr-3 font-medium">Parallel agents</th>
               {cadences.map((c) => <th key={c} className="px-3 py-2 font-medium">{cadenceLabel(c)}</th>)}
             </tr>
@@ -61,10 +61,10 @@ export function StressTable({ rows }: { rows: StressRow[] }) {
           <tbody>
             {agentCounts.map((agents) => (
               <tr key={agents}>
-                <th scope="row" className="py-2 pr-3 font-medium text-zinc-200">{agents}</th>
+                <th scope="row" className="py-2 pr-3 font-medium text-ink">{agents}</th>
                 {cadences.map((cadence) => {
                   const row = cell(agents, cadence);
-                  if (!row) return <td key={cadence} className="px-3 py-2 text-zinc-500">—</td>;
+                  if (!row) return <td key={cadence} className="px-3 py-2 text-ink-3">—</td>;
                   const { fill, ink } = heatStep(m.read(row), lo, hi);
                   return (
                     <td
@@ -82,7 +82,7 @@ export function StressTable({ rows }: { rows: StressRow[] }) {
           </tbody>
         </table>
       </div>
-      <p className="mt-2 text-xs text-zinc-500">
+      <p className="mt-2 text-xs text-ink-3">
         Shade = magnitude of the chosen metric (darker is less; {m.hint}). Hover a cell for all five numbers. “React to every
         ping” is the X-post status quo; the other columns run FocusDeck’s default rules with a scheduled review moment.
       </p>

@@ -38,25 +38,25 @@ const COLUMNS: { title: string; items: string[] }[] = [
  */
 export function SynthesisPanel() {
   return (
-    <section aria-label="How the combination works" className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
-      <h2 className="text-sm font-semibold tracking-wide text-zinc-200">A COMBINATION, NOT A COPY</h2>
-      <p className="mt-1 text-sm leading-6 text-zinc-500">
+    <section aria-label="How the combination works" className="rounded-2xl border border-line bg-surface p-5 sm:p-6">
+      <h2 className="text-base font-semibold text-ink">Where the ideas come from</h2>
+      <p className="mt-1 text-sm leading-6 text-ink-3">
         Not the X post&apos;s dock, and not Hymah on desktop. Hymah contributes the engine and the
         constitution; the X posts contribute the environment — modes, agents, and measured switching.
       </p>
       <div className="mt-4 grid gap-3 md:grid-cols-3">
         {COLUMNS.map((column) => (
-          <div key={column.title} className="rounded-xl bg-zinc-950/60 p-4">
-            <h3 className="text-xs font-semibold tracking-wide text-emerald-400">{column.title}</h3>
-            <ul className="mt-2 list-disc space-y-1 pl-4 text-sm leading-6 text-zinc-400">
+          <div key={column.title} className="rounded-xl bg-sunk p-4">
+            <h3 className="text-sm font-semibold text-ink">{column.title}</h3>
+            <ul className="mt-2 list-disc space-y-1 pl-4 text-sm leading-6 text-ink-2">
               {column.items.map((item) => <li key={item}>{item}</li>)}
             </ul>
           </div>
         ))}
       </div>
-      <p className="mt-4 text-sm leading-6 text-zinc-400">
-        Two moments, one engine: you open X while an agent runs (<span className="text-zinc-200">defection</span>),
-        or an agent blocks while you build (<span className="text-zinc-200">interruption</span>). Either way you get
+      <p className="mt-4 text-sm leading-6 text-ink-2">
+        Two moments, one engine: you open X while an agent runs (<span className="text-ink">defection</span>),
+        or an agent blocks while you build (<span className="text-ink">interruption</span>). Either way you get
         the same thing — your own declared intention, one tap away, or batched as an open loop for your review moment.
       </p>
     </section>

@@ -1,5 +1,5 @@
 import { DEFAULT_PROVIDER, isProviderId, type ProviderId } from "../systemTwo/providerCatalog";
-import { APP_IDS, APP_ID_PATTERN, isAppId } from "./apps";
+import { APP_IDS, APP_ID_PATTERN, appLabel, isAppId } from "./apps";
 import { BATCHABLE_WHENS, type ImplementationIntention, type IntentionWhen, type OfferTarget } from "./intentions";
 import { MODES, REVIEW_MODE_ID } from "./modes";
 import { DEMO_QUEUE, type QueueItem, type QueueItemKind } from "./offer";
@@ -147,24 +147,24 @@ export function validateModel(model: UserModel): string[] {
       problems.push(`${mode.label}: a blocked agent is never model-gated, and app switches never interrupt.`);
     }
   }
-  if (model.trapApps.length > MAX_TRAP_APPS) problems.push(`Pick at most ${MAX_TRAP_APPS} trap apps — FocusDeck watches a few moments well, not everything.`);
+  if (model.trapApps.length > MAX_TRAP_APPS) problems.push(`Pick at most ${MAX_TRAP_APPS} distractions. FocusDeck watches a few moments well, not everything.`);
   for (const app of model.trapApps) {
-    if (!model.designatedApps.includes(app)) problems.push(`Trap app ${app} must be designated before FocusDeck can notice it.`);
+    if (!model.designatedApps.includes(app)) problems.push(`${appLabel(app)} is marked as a distraction, so it must be noticed too. Turn on Notice for it in Setup.`);
   }
   for (const intention of model.intentions) {
-    const where = `“${intention.text || "(untitled intention)"}”`;
-    if (!intention.text.trim()) problems.push("Every intention needs your own words.");
+    const where = `“${intention.text || "(an untitled if-then plan)"}”`;
+    if (!intention.text.trim()) problems.push("Every if-then plan needs your own words.");
     if (intention.mode !== "any" && !modeIds.has(intention.mode)) problems.push(`${where} refers to a mode that no longer exists.`);
-    if (intention.then === "batch" && !BATCHABLE_WHENS.includes(intention.when)) problems.push(`${where}: only agent and notification moments can be batched.`);
+    if (intention.then === "batch" && !BATCHABLE_WHENS.includes(intention.when)) problems.push(`${where}: only agent and notification moments can be held for review.`);
     if (intention.when === "opens-trap" && intention.app && !model.trapApps.includes(intention.app)) {
-      problems.push(`${where}: ${intention.app} is not one of your trap apps.`);
+      problems.push(`${where}: ${appLabel(intention.app)} is not one of your distractions.`);
     }
   }
   const itemIds = new Set<string>();
   for (const item of model.queue) {
-    if (itemIds.has(item.id)) problems.push(`Two queue items share the id ${item.id}.`);
+    if (itemIds.has(item.id)) problems.push(`Two things on your list share the id ${item.id}.`);
     itemIds.add(item.id);
-    if (!item.title.trim() || !item.microAction.trim()) problems.push("Every queue item needs a title and a smallest next step.");
+    if (!item.title.trim() || !item.microAction.trim()) problems.push("Everything on your list needs a title and a smallest next step.");
   }
   if (model.reviewEveryMinutes < REVIEW_CADENCE_BOUNDS.min || model.reviewEveryMinutes > REVIEW_CADENCE_BOUNDS.max) {
     problems.push(`Review moments must be every ${REVIEW_CADENCE_BOUNDS.min}–${REVIEW_CADENCE_BOUNDS.max} minutes.`);
