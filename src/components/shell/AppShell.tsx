@@ -12,6 +12,7 @@ import { clockLabel } from "@/lib/client/time";
 import { PauseIcon, PlayIcon } from "@/components/ui/icons";
 import { modeTint } from "@/components/ui/modeColor";
 import { Button, Kbd } from "@/components/ui/primitives";
+import { ThemePicker } from "./ThemePicker";
 
 const NAV = [
   { href: "/", label: "Now" },
@@ -201,12 +202,13 @@ export function AppShell({ children }: { children: ReactNode }) {
       <footer className="border-t border-line">
         <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-x-6 gap-y-2 px-4 py-5 text-sm text-ink-3 sm:px-6">
           <p>Everything FocusDeck knows stays in this browser. It never blocks anything.</p>
-          <p className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
             <span className="hidden items-center gap-1.5 lg:inline-flex">
               <Kbd>1</Kbd>–<Kbd>9</Kbd> switch mode <Kbd>P</Kbd> pause
             </span>
+            <ThemePicker />
             <Link href="/lab" className={`hover:text-ink ${pathname.startsWith("/lab") ? "text-ink" : ""}`}>Lab</Link>
-          </p>
+          </div>
         </div>
       </footer>
       <FollowerNotice />
