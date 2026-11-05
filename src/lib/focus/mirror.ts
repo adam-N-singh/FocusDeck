@@ -174,7 +174,7 @@ export function buildMirror(history: DayRecord[], today: string, context: Mirror
     // Cumulative evidence only ever rises: every entry is an all-time sum of non-negative counts.
     cumulative: [
       { label: "Times you chose what you said you wanted", value: sum(history, (d) => d.accepted) },
-      { label: "Open loops closed", value: sum(history, (d) => d.loopsClosed) },
+      { label: "Waiting agents answered", value: sum(history, (d) => d.loopsClosed) },
       { label: "Hours in protected modes", value: Math.round(focusHours * 10) / 10, unit: "h" },
       { label: "Days with FocusDeck", value: history.length },
     ],
@@ -189,9 +189,11 @@ export function buildMirror(history: DayRecord[], today: string, context: Mirror
     supportive: supportiveStatement(thisWeek, prev),
     coming: [
       `Review moments every ${context.reviewEveryMinutes} minutes.`,
-      context.openLoopsNow > 0 ? `${context.openLoopsNow} open loop${context.openLoopsNow === 1 ? "" : "s"} carrying into the week.` : "No open loops carrying over.",
-      `${context.activeIntentions} intention${context.activeIntentions === 1 ? "" : "s"} active, ${context.trapApps} trap app${context.trapApps === 1 ? "" : "s"} watched.`,
-      ...(context.pendingProposals > 0 ? [`${context.pendingProposals} proposal${context.pendingProposals === 1 ? "" : "s"} waiting for you in Declare — nothing changes until you confirm.`] : []),
+      context.openLoopsNow > 0
+        ? `${context.openLoopsNow} agent${context.openLoopsNow === 1 ? " is" : "s are"} still waiting on you, carried into the week.`
+        : "No agents left waiting from last week.",
+      `${context.activeIntentions} if-then plan${context.activeIntentions === 1 ? "" : "s"} active, ${context.trapApps} distraction${context.trapApps === 1 ? "" : "s"} watched.`,
+      ...(context.pendingProposals > 0 ? [`${context.pendingProposals} suggestion${context.pendingProposals === 1 ? "" : "s"} waiting for you in Setup. Nothing changes until you confirm.`] : []),
     ],
     hasDemo: history.some((d) => d.demo),
   };

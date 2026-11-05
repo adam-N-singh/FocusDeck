@@ -1,86 +1,109 @@
 "use client";
 
 import Link from "next/link";
-import { allApps } from "@/lib/focus/apps";
+import { allApps, type AppGroup } from "@/lib/focus/apps";
 import { MAX_TRAP_APPS, setDesignated, type UserModel } from "@/lib/focus/model";
 import type { AppId } from "@/lib/focus/types";
 import { useConnectorCatalog } from "@/lib/client/connectors";
-import { Panel } from "@/components/ui/primitives";
+import { Group, Section } from "@/components/ui/primitives";
+import { Switch, type Update } from "./controls";
 import { SitesEditor } from "./SitesEditor";
 
+const GROUP_WORD: Record<AppGroup, string> = {
+  work: "Work",
+  agents: "AI agent",
+  comms: "Messages and calendar",
+  browser: "Websites, by category",
+  tasks: "Tasks and reviews",
+};
+
 /**
- * Per-app opt-in (Privacy: designated-app signals only). An app that isn't
- * designated is invisible to FocusDeck — sensors drop it before it is sent.
- * Trap apps (two or three, Hymah v1) are the defection moments.
+ * Per-app opt-in (designated-app signals only): an app you haven't turned on
+ * is invisible to FocusDeck, because sensors drop it before it is sent. Of
+ * the apps it notices, up to three can be distractions — the defection moments.
  */
-export function AppsSection({ model, update }: { model: UserModel; update: (fn: (m: UserModel) => UserModel) => void }) {
+export function AppsSection({ model, update }: { model: UserModel; update: Update }) {
   // Subscribing re-renders this list once connectors have registered the apps they introduce.
-  useConnectorCatalog();
+  const catalog = useConnectorCatalog();
   const apps = allApps();
+  const trapFull = model.trapApps.length >= MAX_TRAP_APPS;
   const browserCategories = apps.filter((app) => app.group === "browser" && model.designatedApps.includes(app.id)).map((app) => app.id);
-  const toggleDesignated = (id: AppId) => update((m) => setDesignated(m, id, !m.designatedApps.includes(id)));
-  const toggleTrap = (id: AppId) =>
-    update((m) => ({ ...m, trapApps: m.trapApps.includes(id) ? m.trapApps.filter((a) => a !== id) : [...m.trapApps, id] }));
+  const connectorName = (id: string) => catalog.connectors.find((c) => c.id === id)?.name ?? id;
+  const notice = (id: AppId, on: boolean) => update((m) => setDesignated(m, id, on));
+  const distract = (id: AppId, on: boolean) =>
+    update((m) => {
+      if (on && (m.trapApps.includes(id) || m.trapApps.length >= MAX_TRAP_APPS || !m.designatedApps.includes(id))) return m;
+      return { ...m, trapApps: on ? [...m.trapApps, id] : m.trapApps.filter((a) => a !== id) };
+    });
 
   return (
-    <Panel id="apps" title="Apps FocusDeck may notice" kicker="Per-app opt-in">
-      <p className="text-sm leading-6 text-zinc-400">
-        Designate only what FocusDeck should see. For a designated app it learns <em>that</em> you switched to it and when —
-        never what it showed you. Pick up to {MAX_TRAP_APPS} trap apps: the ones you reach for reflexively.
-      </p>
-      <div className="mt-3 overflow-x-auto">
-        <table className="w-full min-w-[480px] text-left text-sm">
-          <thead>
-            <tr className="text-xs text-zinc-500">
-              <th className="py-2 pr-3 font-medium">App</th>
-              <th className="py-2 pr-3 font-medium">Designated</th>
-              <th className="py-2 pr-3 font-medium">Trap app</th>
-            </tr>
-          </thead>
-          <tbody>
-            {apps.map((app) => {
-              const designated = model.designatedApps.includes(app.id);
-              const trap = model.trapApps.includes(app.id);
-              const trapFull = !trap && model.trapApps.length >= MAX_TRAP_APPS;
-              return (
-                <tr key={app.id} className="border-t border-zinc-800">
-                  <td className="py-2 pr-3 text-zinc-200">
-                    {app.label}
-                    <span className="ml-2 text-xs text-zinc-500">{app.group}{app.connector ? ` · from the ${app.connector} connector` : ""}</span>
-                  </td>
-                  <td className="py-2 pr-3">
-                    <input type="checkbox" aria-label={`Designate ${app.label}`} checked={designated} onChange={() => toggleDesignated(app.id)} className="h-4 w-4 accent-emerald-400" />
-                  </td>
-                  <td className="py-2 pr-3">
-                    <input
-                      type="checkbox"
-                      aria-label={`${app.label} is a trap app`}
-                      checked={trap}
-                      disabled={!designated || trapFull}
-                      title={!designated ? "Designate it first" : trapFull ? `At most ${MAX_TRAP_APPS} trap apps` : undefined}
-                      onChange={() => toggleTrap(app.id)}
-                      className="h-4 w-4 accent-amber-400 disabled:opacity-30"
-                    />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      <p className="mt-2 text-xs text-zinc-500">
-        More apps arrive with connectors — see <Link href="/connect" className="text-zinc-300 underline-offset-2 hover:underline">Connect</Link>.
-      </p>
-      {browserCategories.length > 0 && (
-        <div className="mt-4">
-          <h3 className="text-sm font-medium text-zinc-200">Which sites count as each browser category</h3>
-          <p className="mt-1 mb-3 text-xs leading-5 text-zinc-500">
-            The browser connector compares each tab’s hostname with these lists inside your browser and sends only the category,
-            never the address. A site and its subdomains match: x.com covers mobile.x.com.
+    <Section
+      title="Apps and distractions"
+      description={`FocusDeck only notices the apps you turn on here. For those, it learns that you switched and when, never what was on screen. Mark up to ${MAX_TRAP_APPS} as distractions: the ones you reach for without thinking.`}
+    >
+      <Group label="Apps FocusDeck may notice">
+        <li className="flex items-center gap-4 bg-sunk/60 px-4 py-2 text-xs text-ink-3" aria-hidden>
+          <span className="flex-1">App</span>
+          <span className="w-12 text-center">Notice</span>
+          <span className="w-20 text-center">Distraction</span>
+        </li>
+        {apps.map((app) => {
+          const designated = model.designatedApps.includes(app.id);
+          const trap = model.trapApps.includes(app.id);
+          return (
+            <li key={app.id} className="flex items-center gap-4 px-4 py-3">
+              <div className="min-w-0 flex-1">
+                <p className={`text-sm font-medium ${designated ? "text-ink" : "text-ink-2"}`}>{app.label}</p>
+                <p className="text-xs leading-5 text-ink-3">
+                  {GROUP_WORD[app.group] ?? app.group}
+                  {app.connector ? `, from the ${connectorName(app.connector)} connector` : ""}
+                </p>
+              </div>
+              <span className="flex w-12 justify-center">
+                <Switch checked={designated} onChange={(on) => notice(app.id, on)} label={`Notice ${app.label}`} />
+              </span>
+              <span className="flex w-20 justify-center">
+                {designated && (
+                  <Switch
+                    checked={trap}
+                    onChange={(on) => distract(app.id, on)}
+                    label={`${app.label} is a distraction`}
+                    disabled={!trap && trapFull}
+                    title={!trap && trapFull ? `You already have ${MAX_TRAP_APPS} distractions` : undefined}
+                  />
+                )}
+              </span>
+            </li>
+          );
+        })}
+      </Group>
+      <div className="mt-3 max-w-[64ch] space-y-1 text-sm leading-6 text-ink-3">
+        {trapFull && (
+          <p className="text-ink-2" aria-live="polite">
+            You have {MAX_TRAP_APPS} distractions, the most FocusDeck watches. It watches a few moments well rather than everything; turn one off to choose another.
           </p>
-          <SitesEditor model={model} update={update} categories={browserCategories} />
+        )}
+        <p>
+          More apps arrive with connectors.{" "}
+          <Link href="/connect" className="text-ink underline decoration-line-strong underline-offset-4 hover:decoration-accent">
+            Find them in Connect
+          </Link>
+          .
+        </p>
+      </div>
+
+      {browserCategories.length > 0 && (
+        <div className="mt-10">
+          <h3 className="text-base font-semibold text-ink">Which sites count as each category</h3>
+          <p className="mt-1 max-w-[64ch] text-sm leading-6 text-ink-2">
+            Your browser connector checks each tab’s address against these lists inside the browser and sends only the category, never the
+            address. A site covers its subdomains: x.com covers mobile.x.com.
+          </p>
+          <div className="mt-4">
+            <SitesEditor model={model} update={update} categories={browserCategories} />
+          </div>
         </div>
       )}
-    </Panel>
+    </Section>
   );
 }

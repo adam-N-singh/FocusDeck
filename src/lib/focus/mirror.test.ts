@@ -47,7 +47,7 @@ describe("the weekly honest mirror", () => {
       day("2026-10-27", { meanTimeToCloseMinutes: 20 }),
     ], "2026-10-28", context);
     expect(mirror.supportive).toBe("Agents waited 20m on average this week, down from 40m. Your review moment is doing the work.");
-    expect(mirror.coming).toContain("2 open loops carrying into the week.");
+    expect(mirror.coming).toContain("2 agents are still waiting on you, carried into the week.");
   });
 
   it("generates a deterministic, clearly labelled demo history of weekdays", () => {

@@ -19,7 +19,7 @@ describe("the declared model", () => {
     const model = { ...createDemoModel(), trapApps: ["browser-x", "slack", "calendar", "notes"] as const };
     expect(validateModel({ ...model, trapApps: [...model.trapApps] }).some((p) => p.includes(`at most ${MAX_TRAP_APPS}`))).toBe(true);
     const undesignated = { ...createDemoModel(), designatedApps: ["editor" as const] };
-    expect(validateModel(undesignated).some((p) => p.includes("must be designated"))).toBe(true);
+    expect(validateModel(undesignated).some((p) => p.includes("must be noticed"))).toBe(true);
   });
 
   it("rejects 'batch' for a defection moment and requires the review mode", () => {

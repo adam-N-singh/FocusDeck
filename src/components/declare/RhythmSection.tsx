@@ -5,12 +5,14 @@ import { useEffect, useState } from "react";
 import type { UserModel } from "@/lib/focus/model";
 import { providerInfo } from "@/lib/systemTwo/providerCatalog";
 import { fetchSystemTwoStatus, type SystemTwoStatus } from "@/lib/client/systemTwoClient";
-import { Panel, Toggle } from "@/components/ui/primitives";
+import { Button, Group, Section, Toggle, selectClass } from "@/components/ui/primitives";
+import type { Update } from "./controls";
+import type { Suggestions } from "./ProposalsSection";
 
 const CADENCES = [15, 20, 30, 45, 60, 90, 120, 180, 240];
 
-/** Review moments, the quiet first hour, and which decision layers may run. */
-export function RhythmSection({ model, update }: { model: UserModel; update: (fn: (m: UserModel) => UserModel) => void }) {
+/** Review moments, the quiet first hour, and which helpers may run. */
+export function RhythmSection({ model, update, suggestions }: { model: UserModel; update: Update; suggestions: Suggestions }) {
   const [status, setStatus] = useState<SystemTwoStatus | null>(null);
   useEffect(() => {
     let alive = true;
@@ -19,58 +21,77 @@ export function RhythmSection({ model, update }: { model: UserModel; update: (fn
       alive = false;
     };
   }, []);
+  const provider = providerInfo(model.systemTwoProvider);
+  const chosen = status?.providers.find((p) => p.id === model.systemTwoProvider);
+  const cadence = CADENCES.includes(model.reviewEveryMinutes) ? CADENCES : [...CADENCES, model.reviewEveryMinutes].sort((a, b) => a - b);
 
   return (
-    <Panel id="rhythm" title="Rhythm and decision layers" kicker="Explicit before inferred">
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <div className="space-y-3 rounded-xl bg-zinc-950/60 p-4">
-          <label className="block text-sm text-zinc-200">
-            Review moment every{" "}
+    <Section title="Rhythm" description="When FocusDeck brings things back to you, and which helpers it may use. Your own rules always decide first.">
+      <Group label="Rhythm and helpers">
+        <li className="px-4 py-4 sm:px-5">
+          <label className="flex flex-wrap items-center gap-x-2 gap-y-2 text-sm text-ink">
+            A review moment every
             <select
-              aria-label="Review cadence"
+              aria-label="How often your review moment comes"
               value={model.reviewEveryMinutes}
               onChange={(e) => update((m) => ({ ...m, reviewEveryMinutes: Number(e.target.value) }))}
-              className="rounded-lg border border-zinc-700 bg-zinc-950 px-2 py-1 text-sm text-zinc-100"
+              className={selectClass}
             >
-              {CADENCES.map((c) => <option key={c} value={c}>{c} minutes</option>)}
+              {cadence.map((c) => (
+                <option key={c} value={c}>{c < 60 || c % 60 !== 0 ? `${c} minutes` : c === 60 ? "hour" : `${c / 60} hours`}</option>
+              ))}
             </select>
           </label>
-          <p className="text-xs leading-5 text-zinc-500">
-            Batched agents and held items wait for this moment instead of pinging you. The Lab shows the trade-off: shorter cadences
-            keep agents busier; longer ones protect more of your focus.
+          <p className="mt-1.5 max-w-[62ch] text-sm leading-6 text-ink-2">
+            Held agents and notifications wait for this instead of pinging you. Shorter keeps agents busier; longer protects more of your focus.
+            The Lab shows the trade-off.
           </p>
+        </li>
+        <li className="px-4 py-4 sm:px-5">
           <Toggle
             checked={model.quietFirstBuildHour}
             onChange={(quietFirstBuildHour) => update((m) => ({ ...m, quietFirstBuildHour }))}
-            label="Stay quiet during my first build hour"
-            description="Nothing interrupts the first 60 minutes of Building — blocked agents wait as open loops."
+            label="Stay quiet for my first hour of Building"
+            description="Nothing interrupts the first 60 minutes of Building. Blocked agents wait in Waiting on you."
           />
-        </div>
-        <div className="space-y-4 rounded-xl bg-zinc-950/60 p-4">
-          <p className="text-xs leading-5 text-zinc-500">Rules always decide first, for free. These layers are optional, and each can be switched off.</p>
+        </li>
+        <li className="px-4 py-4 sm:px-5">
           <Toggle
             checked={model.systemOneEnabled}
             onChange={(systemOneEnabled) => update((m) => ({ ...m, systemOneEnabled }))}
-            label="System One for ambiguous events (Layer 2)"
-            description="Scores only what the rules can't settle, from metadata, on this machine (a deterministic stand-in for Jev). Off: those events take the safe default — batched."
+            label="Let FocusDeck judge unclear events on this machine"
+            description="For the few events your rules leave open, an on-device judge (System One) decides from metadata. Off, those events are held for your review."
           />
+        </li>
+        <li className="px-4 py-4 sm:px-5">
           <Toggle
             checked={model.systemTwoEnabled}
             onChange={(systemTwoEnabled) => update((m) => ({ ...m, systemTwoEnabled }))}
-            label="System Two for drafts and the weekly paragraph (Layer 3)"
-            description="Off the hot path, on demand only. Sends weekly aggregates and your declared words (modes, intentions) to the AI you choose — never events, labels, or anything a sensor saw."
+            label="AI helper for suggestions and your weekly paragraph"
+            description="The AI helper (System Two) runs only when you ask. It receives weekly totals and the words you wrote on this page, never events or anything a sensor saw."
           />
-          <p className="text-xs leading-5 text-zinc-500">
-            Runs on: <span className="text-zinc-300">{providerInfo(model.systemTwoProvider).label}</span>
-            {(() => {
-              const chosen = status?.providers.find((p) => p.id === model.systemTwoProvider);
-              if (!status) return " · checking…";
-              return chosen?.ready ? " · set up." : " · not set up yet, so FocusDeck uses its plain template.";
-            })()}{" "}
-            <Link href="/connect#ai" className="text-zinc-300 underline underline-offset-2">Choose your AI</Link>
-          </p>
-        </div>
-      </div>
-    </Panel>
+          <div className="mt-3 space-y-3 sm:pl-[52px]">
+            <p className="text-sm leading-6 text-ink-2">
+              Runs on <span className="text-ink">{provider.label}</span>
+              {!status ? ", checking it now." : chosen?.ready ? ", which is set up." : ", which isn’t set up yet, so FocusDeck uses its plain template."}{" "}
+              <Link href="/connect#ai" className="text-ink underline decoration-line-strong underline-offset-4 hover:decoration-accent">
+                Choose your AI
+              </Link>
+            </p>
+            <div className="flex flex-wrap items-center gap-3">
+              <Button size="sm" disabled={!suggestions.canAsk || suggestions.busy} onClick={() => void suggestions.ask()}>
+                {suggestions.busy ? "Asking the AI helper…" : "Ask the AI helper for suggestions"}
+              </Button>
+              {!suggestions.canAsk && <span className="text-sm text-ink-3">Turn the AI helper on first.</span>}
+            </div>
+            {suggestions.note && (
+              <p className="max-w-[62ch] text-sm leading-6 text-ink-2" aria-live="polite">
+                {suggestions.note}
+              </p>
+            )}
+          </div>
+        </li>
+      </Group>
+    </Section>
   );
 }

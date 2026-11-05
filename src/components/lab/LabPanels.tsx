@@ -18,7 +18,7 @@ const ASSUMPTIONS: [string, string, string][] = [
   ["Pull toward the feed", `${DEFAULT_BEHAVIOUR.defectBasePerMinute * 100}% a minute + ${DEFAULT_BEHAVIOUR.defectPerRunningAgent * 100}% per running agent`, "“Open X while the next run finishes”"],
   ["A feed visit", `${DEFAULT_BEHAVIOUR.feedMinutes} min`, "Then the refocus"],
   ["Notifications", `${DEFAULT_BEHAVIOUR.notificationPerMinute * 100}% a minute; checked ${Math.round(DEFAULT_BEHAVIOUR.checkNotificationProbability * 100)}% of the time`, "When nothing holds them"],
-  ["Refocus after a switch", `${DEFAULT_COSTS.inModeSwitch} in-mode · ${DEFAULT_COSTS.contextSwitch} context · ${DEFAULT_COSTS.interruption} interrupted (min)`, "The prototype's cost model; overlapping refocus doesn't stack"],
+  ["Refocus after a switch", `${DEFAULT_COSTS.inModeSwitch} in-mode, ${DEFAULT_COSTS.contextSwitch} context, ${DEFAULT_COSTS.interruption} interrupted (min)`, "The prototype's cost model; overlapping refocus doesn't stack"],
   ["Deciding on an offer", `${DEFAULT_COSTS.offerDecision} min`, "Paid whether it's accepted or not"],
 ];
 
@@ -29,16 +29,16 @@ export function AssumptionsPanel() {
         <table className="w-full min-w-[520px] text-left text-sm">
           <tbody>
             {ASSUMPTIONS.map(([name, value, note]) => (
-              <tr key={name} className="border-t border-zinc-800 align-top">
-                <td className="py-2 pr-3 text-zinc-200">{name}</td>
-                <td className="py-2 pr-3 text-zinc-300 tabular-nums">{value}</td>
-                <td className="py-2 text-xs text-zinc-500">{note}</td>
+              <tr key={name} className="border-t border-line align-top">
+                <td className="py-2 pr-3 text-ink">{name}</td>
+                <td className="py-2 pr-3 text-ink tabular-nums">{value}</td>
+                <td className="py-2 text-xs text-ink-3">{note}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      <p className="mt-2 text-xs leading-5 text-zinc-500">Defined in src/lib/focus/policyConfig.ts. Replace them with your own week of telemetry before trusting a verdict.</p>
+      <p className="mt-2 text-xs leading-5 text-ink-3">Defined in src/lib/focus/policyConfig.ts. Replace them with your own week of telemetry before trusting a verdict.</p>
     </Panel>
   );
 }
@@ -55,25 +55,25 @@ export function DayExplorer() {
   const metrics = useMemo(() => computeMetrics(events), [events]);
   return (
     <div className="space-y-4">
-      <section aria-label="Day controls" className="flex flex-wrap items-center gap-3 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4">
+      <section aria-label="Day controls" className="flex flex-wrap items-center gap-3 rounded-2xl border border-line bg-surface p-4">
         <div className="flex gap-2" role="group" aria-label="Day source">
           <Button variant={source === "post" ? "primary" : "secondary"} onClick={() => setSource("post")}>The X-post day</Button>
           <Button variant={source === "simulated" ? "primary" : "secondary"} onClick={() => setSource("simulated")}>Simulated day</Button>
         </div>
         {source === "simulated" && (
           <>
-            <label className="text-sm text-zinc-400">
-              Parallel agents: <span className="font-semibold text-zinc-100">{agents}</span>
-              <input type="range" min={1} max={8} value={agents} onChange={(e) => setAgents(Number(e.target.value))} className="ml-2 align-middle accent-emerald-400" />
+            <label className="text-sm text-ink-2">
+              Parallel agents: <span className="font-semibold text-ink">{agents}</span>
+              <input type="range" min={1} max={8} value={agents} onChange={(e) => setAgents(Number(e.target.value))} className="ml-2 align-middle" />
             </label>
             <Button onClick={() => setSeed((s) => s + 1)}>New day (seed {seed})</Button>
           </>
         )}
-        <p className="text-xs text-zinc-500">Rules-only classification of a fixed event trace — the live deck on Now adds your intentions and System One.</p>
+        <p className="text-xs text-ink-3">Rules-only classification of a fixed event trace — the live deck on Now adds your intentions and System One.</p>
       </section>
       <MetricsPanel metrics={metrics} />
       <EventTimeline events={events.slice(0, source === "post" ? undefined : 40)} />
-      {source === "simulated" && events.length > 40 && <p className="text-xs text-zinc-500">Showing the first 40 of {events.length} events. The metrics cover the whole day.</p>}
+      {source === "simulated" && events.length > 40 && <p className="text-xs text-ink-3">Showing the first 40 of {events.length} events. The metrics cover the whole day.</p>}
     </div>
   );
 }
@@ -95,7 +95,7 @@ export function CalibrationPanel() {
   const report = calibrationReport(samples);
   return (
     <Panel kicker="The spike question, runnable" title="Is System One calibrated on your events?">
-      <p className="text-sm leading-6 text-zinc-400">
+      <p className="text-sm leading-6 text-ink-2">
         Label ambiguous events in the activity log (“did this need you?”). This compares what System One said with what you said —
         for today’s stand-in, and for a real Jev adapter later, before it is ever trusted on the hot path.
       </p>
@@ -103,14 +103,14 @@ export function CalibrationPanel() {
         <Button size="sm" variant={demo ? "secondary" : "primary"} onClick={() => setDemo(false)}>My labels ({samplesFromDeck(state.live).length})</Button>
         <Button size="sm" variant={demo ? "primary" : "secondary"} onClick={() => setDemo(true)}>Synthetic labels (demo)</Button>
       </div>
-      <p className="mt-3 text-sm text-zinc-100">{report.verdict}</p>
+      <p className="mt-3 text-sm text-ink">{report.verdict}</p>
       {report.n > 0 && (
         <div className="mt-3 overflow-x-auto">
           <table className="w-full min-w-[420px] text-left text-sm">
-            <thead><tr className="text-xs text-zinc-500"><th className="py-1 pr-3 font-medium">System One said</th><th className="py-1 pr-3 font-medium">Events</th><th className="py-1 pr-3 font-medium">Mean probability</th><th className="py-1 font-medium">Actually needed you</th></tr></thead>
+            <thead><tr className="text-xs text-ink-3"><th className="py-1 pr-3 font-medium">System One said</th><th className="py-1 pr-3 font-medium">Events</th><th className="py-1 pr-3 font-medium">Mean probability</th><th className="py-1 font-medium">Actually needed you</th></tr></thead>
             <tbody>
               {report.buckets.filter((b) => b.count > 0).map((b) => (
-                <tr key={b.from} className="border-t border-zinc-800 tabular-nums text-zinc-300">
+                <tr key={b.from} className="border-t border-line tabular-nums text-ink">
                   <td className="py-1.5 pr-3">{b.from.toFixed(1)}–{b.to.toFixed(1)}</td>
                   <td className="py-1.5 pr-3">{b.count}</td>
                   <td className="py-1.5 pr-3">{Math.round(b.meanPredicted * 100)}%</td>
@@ -119,7 +119,7 @@ export function CalibrationPanel() {
               ))}
             </tbody>
           </table>
-          <p className="mt-2 text-xs text-zinc-500">ECE {report.ece} · Brier {report.brier} · right above the 0.8 threshold: {report.precisionAtThreshold === null ? "—" : `${Math.round(report.precisionAtThreshold * 100)}%`}</p>
+          <p className="mt-2 text-xs text-ink-3">ECE {report.ece}, Brier {report.brier}, right above the 0.8 threshold: {report.precisionAtThreshold === null ? "—" : `${Math.round(report.precisionAtThreshold * 100)}%`}</p>
         </div>
       )}
     </Panel>

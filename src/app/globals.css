@@ -1,35 +1,193 @@
 @import "tailwindcss";
 
 /*
- * One deliberate dark theme. Every panel is designed on zinc-950, so the
- * page background is too — in light mode the prototype rendered its
- * zinc-50 headings on white, which made them invisible.
+ * The mode is the atmosphere. Every colour is derived from two numbers set on
+ * <html> by the shell: --h, the hue of the mode you are in, and --k, a chroma
+ * multiplier that drops to 0 while FocusDeck is paused (the room goes grey).
+ * Both are registered so a mode change crossfades instead of jumping.
+ *
+ * Any element can carry its own hue with `data-hue` + an inline --h (the mode
+ * switcher does this so each preset shows its own colour).
  */
+@property --h {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 262;
+}
+
+@property --k {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 1;
+}
+
+:root,
+[data-hue] {
+  --bg: oklch(97.2% calc(0.016 * var(--k)) var(--h));
+  --surface: oklch(99.4% calc(0.008 * var(--k)) var(--h));
+  --sunk: oklch(94.4% calc(0.02 * var(--k)) var(--h));
+  --line: oklch(89.5% calc(0.024 * var(--k)) var(--h));
+  --line-strong: oklch(80% calc(0.03 * var(--k)) var(--h));
+  --ink: oklch(23% calc(0.03 * var(--k)) var(--h));
+  --ink-2: oklch(41% calc(0.03 * var(--k)) var(--h));
+  --ink-3: oklch(52% calc(0.025 * var(--k)) var(--h));
+  --accent: oklch(50% calc(0.15 * var(--k)) var(--h));
+  --accent-ink: oklch(99% 0 0);
+  --accent-soft: oklch(91.5% calc(0.05 * var(--k)) var(--h));
+  --accent-line: oklch(78% calc(0.09 * var(--k)) var(--h));
+  --attention: oklch(54% 0.2 27);
+  --attention-soft: oklch(94.5% 0.035 27);
+  --shadow: oklch(35% calc(0.08 * var(--k)) var(--h) / 0.22);
+}
+
 :root {
-  --background: #09090b;
-  --foreground: #e4e4e7;
-  color-scheme: dark;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+
+  :root,
+  [data-hue] {
+    --bg: oklch(18.5% calc(0.022 * var(--k)) var(--h));
+    --surface: oklch(23% calc(0.026 * var(--k)) var(--h));
+    --sunk: oklch(15.5% calc(0.02 * var(--k)) var(--h));
+    --line: oklch(30% calc(0.028 * var(--k)) var(--h));
+    --line-strong: oklch(40% calc(0.03 * var(--k)) var(--h));
+    --ink: oklch(95% calc(0.012 * var(--k)) var(--h));
+    --ink-2: oklch(79% calc(0.02 * var(--k)) var(--h));
+    --ink-3: oklch(65% calc(0.022 * var(--k)) var(--h));
+    --accent: oklch(79% calc(0.12 * var(--k)) var(--h));
+    --accent-ink: oklch(19% calc(0.04 * var(--k)) var(--h));
+    --accent-soft: oklch(31% calc(0.06 * var(--k)) var(--h));
+    --accent-line: oklch(50% calc(0.09 * var(--k)) var(--h));
+    --attention: oklch(73% 0.16 25);
+    --attention-soft: oklch(30% 0.07 25);
+    --shadow: oklch(5% 0 0 / 0.55);
+  }
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-sunk: var(--sunk);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-line: var(--accent-line);
+  --color-attention: var(--attention);
+  --color-attention-soft: var(--attention-soft);
+  --font-sans: var(--font-recursive), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-recursive), ui-monospace, "SFMono-Regular", monospace;
+}
+
+/* The crossfade only starts once the real mode is known, so a page load never animates. */
+html[data-atmosphere] {
+  transition:
+    --h 700ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    --k 700ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+html {
+  background: var(--bg);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-geist-sans), ui-sans-serif, system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-variation-settings: "CASL" 0, "MONO" 0;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Your own words — intentions, your list, what you said — in Recursive's casual voice. */
+.voice {
+  font-variation-settings: "CASL" 1, "MONO" 0;
+}
+
+/* Real code and commands only. */
+code,
+pre,
+kbd,
+.code {
+  font-family: var(--font-mono);
+  font-variation-settings: "CASL" 0, "MONO" 1;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--ink);
 }
 
 :focus-visible {
-  outline: 2px solid #34d399;
+  outline: 2px solid var(--accent);
   outline-offset: 2px;
 }
 
+/* A simulation is never mistaken for your real day. */
+.hatch {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    transparent 0 9px,
+    color-mix(in oklch, var(--ink) 7%, transparent) 9px 10px
+  );
+}
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* <details> without the browser's triangle; our own chevron turns instead. */
+summary {
+  list-style: none;
+}
+
+summary::-webkit-details-marker {
+  display: none;
+}
+
+details[open] > summary .chevron {
+  transform: rotate(90deg);
+}
+
+@keyframes arrive {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.arrive {
+  animation: arrive 460ms cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+input[type="range"] {
+  accent-color: var(--accent);
+}
+
 @media (prefers-reduced-motion: reduce) {
+  html[data-atmosphere] {
+    transition: none;
+  }
+
   *,
   *::before,
   *::after {

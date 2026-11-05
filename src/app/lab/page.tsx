@@ -4,9 +4,10 @@ import { StressTable } from "@/components/focus/StressTable";
 import { SynthesisPanel } from "@/components/focus/SynthesisPanel";
 import { AssumptionsPanel, CalibrationPanel, DayExplorer } from "@/components/lab/LabPanels";
 import { ThreeQuestions } from "@/components/lab/ThreeQuestions";
+import { PageHeader, Panel } from "@/components/ui/primitives";
 import { runStressSweep } from "@/lib/focus/stress";
 
-export const metadata: Metadata = { title: "Lab — FocusDeck" };
+export const metadata: Metadata = { title: "Lab" };
 
 /**
  * The Lab — prove the moment cheaply, or find out cheaply that it doesn't
@@ -16,15 +17,11 @@ export const metadata: Metadata = { title: "Lab — FocusDeck" };
 export default function LabPage() {
   const rows = runStressSweep();
   return (
-    <div className="space-y-4">
-      <header className="max-w-3xl">
-        <p className="text-xs font-semibold tracking-widest text-emerald-400">BEFORE BUILDING ANY OS-LEVEL SENSOR</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-50">Lab</h1>
-        <p className="mt-2 text-sm leading-6 text-zinc-400">
-          The stress test, the decision models, and the combination itself. If mode-scoping and review cadences don’t pay off here
-          and later in telemetry, the combination has no advantage over its parents and should be simplified back.
-        </p>
-      </header>
+    <div className="space-y-6">
+      <PageHeader
+        title="Lab"
+        description="The simulations behind FocusDeck. If modes and review moments don’t pay off here, and later in real use, FocusDeck should be simplified back. You don’t need any of this to use it."
+      />
       <ThreeQuestions />
       <StressTable rows={rows} />
       <AssumptionsPanel />
@@ -32,16 +29,15 @@ export default function LabPage() {
       <CalibrationPanel />
       <DayExplorer />
       <SynthesisPanel />
-      <section className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-5">
-        <h2 className="text-sm font-semibold tracking-wide text-zinc-200">HOW TO STRESS-TEST THIS FOR REAL</h2>
-        <ol className="mt-2 list-decimal space-y-1 pl-5 text-sm leading-6 text-zinc-400">
-          <li>Instrument first, intervene second: run the sensors with guarding paused for a week. 506 is a baseline, not a verdict.</li>
-          <li>Vary one lever at a time: agent parallelism, then review cadence, then classifier strictness. The table above is that sweep, simulated.</li>
-          <li>Judge open loops, not raw switches: a switch inside Reviewing-agents mode is work; the same switch inside Writing is a leak.</li>
-          <li>Keep the classifier deterministic-first, pause-able, and logged — the trust controls the thread explicitly asked for.</li>
-          <li>Replace the assumptions with your telemetry, then re-read the three questions. Label ambiguous events so System One’s calibration is measured, not assumed.</li>
+      <Panel title="How to test this for real">
+        <ol className="list-decimal space-y-2 pl-5 text-sm leading-6 text-ink-2 marker:text-ink-3">
+          <li>Measure first, intervene second: run the sensors with FocusDeck paused for a week. 506 switches is a baseline, not a verdict.</li>
+          <li>Change one lever at a time: how many agents run, then how often you review, then how strict the classifier is. The table above is that sweep, simulated.</li>
+          <li>Judge agents waiting, not raw switches: a switch inside Reviewing agents is work; the same switch inside Writing is a leak.</li>
+          <li>Keep the classifier rules-first, pausable and logged, the trust controls people asked for.</li>
+          <li>Replace the assumptions with your own week, then read the three questions again. Label unclear events so the on-device judge’s calibration is measured, not assumed.</li>
         </ol>
-      </section>
+      </Panel>
     </div>
   );
 }

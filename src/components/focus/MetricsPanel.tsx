@@ -4,10 +4,10 @@ import type { DayMetrics } from "@/lib/focus/types";
 
 function Stat({ label, value, hint }: { label: string; value: string | number; hint: string }) {
   return (
-    <div className="rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4">
-      <p className="text-xs font-medium tracking-wide text-zinc-500">{label}</p>
-      <p className="mt-1 text-3xl font-semibold text-zinc-50">{value}</p>
-      <p className="mt-1 text-xs leading-5 text-zinc-500">{hint}</p>
+    <div className="rounded-2xl border border-line bg-surface p-4">
+      <p className="text-xs font-medium text-ink-3">{label}</p>
+      <p className="mt-1 text-3xl font-semibold text-ink">{value}</p>
+      <p className="mt-1 text-xs leading-5 text-ink-3">{hint}</p>
     </div>
   );
 }
