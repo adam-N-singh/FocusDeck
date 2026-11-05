@@ -44,13 +44,21 @@
   color-scheme: light;
 }
 
+/*
+ * Themes. With no choice saved (or "auto") FocusDeck follows the system's
+ * light or dark setting; data-theme on <html> overrides it. It is set before
+ * first paint by the inline script in layout.tsx, so there's no flash.
+ */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme]),
+  :root[data-theme="auto"] {
     color-scheme: dark;
   }
 
-  :root,
-  [data-hue] {
+  :root:not([data-theme]),
+  :root:not([data-theme]) [data-hue],
+  :root[data-theme="auto"],
+  :root[data-theme="auto"] [data-hue] {
     --bg: oklch(18.5% calc(0.022 * var(--k)) var(--h));
     --surface: oklch(23% calc(0.026 * var(--k)) var(--h));
     --sunk: oklch(15.5% calc(0.02 * var(--k)) var(--h));
@@ -67,6 +75,58 @@
     --attention-soft: oklch(30% 0.07 25);
     --shadow: oklch(5% 0 0 / 0.55);
   }
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+:root[data-theme="dark"],
+:root[data-theme="dark"] [data-hue] {
+  --bg: oklch(18.5% calc(0.022 * var(--k)) var(--h));
+  --surface: oklch(23% calc(0.026 * var(--k)) var(--h));
+  --sunk: oklch(15.5% calc(0.02 * var(--k)) var(--h));
+  --line: oklch(30% calc(0.028 * var(--k)) var(--h));
+  --line-strong: oklch(40% calc(0.03 * var(--k)) var(--h));
+  --ink: oklch(95% calc(0.012 * var(--k)) var(--h));
+  --ink-2: oklch(79% calc(0.02 * var(--k)) var(--h));
+  --ink-3: oklch(65% calc(0.022 * var(--k)) var(--h));
+  --accent: oklch(79% calc(0.12 * var(--k)) var(--h));
+  --accent-ink: oklch(19% calc(0.04 * var(--k)) var(--h));
+  --accent-soft: oklch(31% calc(0.06 * var(--k)) var(--h));
+  --accent-line: oklch(50% calc(0.09 * var(--k)) var(--h));
+  --attention: oklch(73% 0.16 25);
+  --attention-soft: oklch(30% 0.07 25);
+  --shadow: oklch(5% 0 0 / 0.55);
+}
+
+/*
+ * Soft: a low-contrast light theme for long days. A mid-light, mode-tinted
+ * ground with pale sheets on it and graphite ink instead of near-black. Body
+ * text sits near 7:1 (Light is about 15:1), secondary text stays above 4.5:1,
+ * borders are a whisper, and colour is quieter everywhere.
+ */
+:root[data-theme="soft"] {
+  color-scheme: light;
+}
+
+:root[data-theme="soft"],
+:root[data-theme="soft"] [data-hue] {
+  --bg: oklch(92.2% calc(0.018 * var(--k)) var(--h));
+  --surface: oklch(95.2% calc(0.012 * var(--k)) var(--h));
+  --sunk: oklch(89.5% calc(0.02 * var(--k)) var(--h));
+  --line: oklch(85.5% calc(0.022 * var(--k)) var(--h));
+  --line-strong: oklch(78% calc(0.026 * var(--k)) var(--h));
+  --ink: oklch(40% calc(0.03 * var(--k)) var(--h));
+  --ink-2: oklch(47% calc(0.028 * var(--k)) var(--h));
+  --ink-3: oklch(52.5% calc(0.024 * var(--k)) var(--h));
+  --accent: oklch(52% calc(0.095 * var(--k)) var(--h));
+  --accent-ink: oklch(97.5% calc(0.01 * var(--k)) var(--h));
+  --accent-soft: oklch(86.5% calc(0.035 * var(--k)) var(--h));
+  --accent-line: oklch(74% calc(0.055 * var(--k)) var(--h));
+  --attention: oklch(51% 0.13 27);
+  --attention-soft: oklch(89% 0.03 27);
+  --shadow: oklch(35% calc(0.04 * var(--k)) var(--h) / 0.14);
 }
 
 @theme inline {
